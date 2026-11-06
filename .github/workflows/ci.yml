@@ -12,8 +12,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Build and verify the complete appliance
         run: docker build --platform linux/amd64 -t antislopscan:ci .
+      - name: Scan Git history for secrets
+        run: |
+          packageContainer=$(docker create antislopscan:ci)
+          trap 'docker rm "$packageContainer" >/dev/null' EXIT
+          docker cp "$packageContainer:/app/tools/bin/gitleaks" "$RUNNER_TEMP/gitleaks"
+          "$RUNNER_TEMP/gitleaks" git "$PWD" --log-opts=--all --no-banner --redact
       - name: Run appliance documentation checks
         run: docker run --rm --network none --entrypoint npm antislopscan:ci run check:docs
       - name: Extract the verified npm package

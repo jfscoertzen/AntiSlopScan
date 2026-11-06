@@ -4,6 +4,23 @@ Validation performed on 2026-11-05 and 2026-11-06 with Node 22.22.3, Python 3.12
 Docker 29.1.3, Chromium revision 1194, and the pinned scanner toolchain.
 The Docker image uses Debian bookworm's Python runtime and the same package locks.
 
+## Public alpha and secret review
+
+`v1.0.0-alpha.1` was published as a GitHub prerelease with an executable Linux
+x86_64 archive, npm tarball and SHA-256 manifest. Its release workflow completed,
+and Docker Hub serves both the versioned image and `alpha`. The archive launcher
+passed a real portable audit at 100% tool coverage; the published asset digests
+match the release checksum manifest. The first CI run exposed a report-directory
+permission problem; the runner-readable handoff was reproduced and corrected,
+and the following main-branch CI run passed.
+
+Gitleaks found no secrets in the published Git history or downloaded npm
+archive. A scan of the image's application directory also found none; that scan
+skipped files larger than 5 MB and binary content. An additional exact-value
+check found the Docker credential in neither the checked release files nor the
+image environment. These checks are detection aids, not proof that no secret can
+ever be present. CI now scans fetched Git history with redacted output.
+
 ## Branded publication reports
 
 The HTML/PDF renderer now shares frontend palette tokens, original SVG icons,

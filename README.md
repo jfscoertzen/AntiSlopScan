@@ -1,50 +1,97 @@
-# antislopscan
+# AntiSlopScan
 
-[![CI](https://github.com/jfscoertzen/AntiSlopScan/actions/workflows/ci.yml/badge.svg)](https://github.com/jfscoertzen/AntiSlopScan/actions/workflows/ci.yml)
+[![CI](https://github.com/jfscoertzen/AntiSlopScan/actions/workflows/ci.yml/badge.svg)](https://github.com/jfscoertzen/AntiSlopScan/actions/workflows/ci.yml) [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE.TXT) [![Release: alpha](https://img.shields.io/badge/release-alpha-orange.svg)](https://github.com/jfscoertzen/AntiSlopScan/releases)
 
-<img src="assets/branding/antislopscan-mark.png" alt="antislopscan inspection mark" width="96" height="96">
+<img src="assets/branding/antislopscan-mark.png" alt="AntiSlopScan mark" width="96" height="96">
 
-An Apache-2.0, self-hosted repository audit appliance. It combines independent
-architecture analysis with installed static-analysis tools, produces HTML, PDF,
-JSON and SARIF, and records scanner failures separately from quality findings.
+**Understand the quality and structure of your codebase in one audit.**
 
-Core analysis works offline after installation. It does not require AI services,
-install audited dependencies, run repository scripts, or load repository lint
-configuration. Scans use bounded, private source snapshots.
+AntiSlopScan is an open-source, self-hosted code audit appliance for developers,
+architects and CI pipelines. It combines static-analysis tools with an independent
+architecture and systems-thinking engine to surface code smells, duplication,
+security indicators, dependency risks and maintainability concerns. Explore the
+results in a web dashboard or produce standalone HTML, printable PDF, JSON and
+SARIF reports.
 
-The review workbench and standalone HTML reports offer light, dark, and system
-appearance. Evidence dashboards drill into severity, category, rule, file, and
-scanner slices. Advanced filters add assessment, detection method, confidence,
-and sorting; the frontend exports the complete filtered selection as JSON.
-Native finding disclosures expose evidence, remediation, provenance, and curated
-online documentation. Reading reports and using filters requires no network;
-reference links navigate externally only when clicked. PDF uses an expanded,
-white A4 publication layout with a branded cover, quality gauge, illustrated
-principle guide, labeled static/LLM assessments, complete evidence appendices and
-global page numbers. HTML embeds the same local artwork and supports seven saved
-accent colors. Print uses static illustrations and omits interactive controls;
-JSON/SARIF retain their machine-readable contracts. All formats preserve the
-same audit values and confidence limits. Brand provenance and the generation prompt are recorded in
-[`assets/branding/README.md`](assets/branding/README.md).
+![AntiSlopScan dashboard showing an audit of a sample project](assets/readme-dashboard.png)
 
-The intelligence workbench starts in dark mode with a teal accent and preserves
-existing saved preferences. Under **Appearance settings**, choose light, dark,
-or system appearance and one of seven accent colors, including neutral gray.
-Pause **Background motion** there; reduced-motion preferences and hidden tabs
-also stop the illustrative flow. Appearance, accent, and motion are saved
-independently in your browser.
+*The dashboard above shows a real audit of a small sample fixture.*
 
-The score-led summary keeps CI status separate from quality. The Architecture
-dependency explorer draws bounded, actual module relationships with path search,
-runtime/type distinction, module inspection, and evidence drill-down. Its radial
-layout does not imply layers or causal loops. Original Imagegen background and
-empty-state graphics have recorded prompts in
-[`intelligence/README.md`](assets/branding/intelligence/README.md). They are
-illustrative identity assets, separate from measured graph data.
+### What you get
+
+- **Evidence you can investigate:** filter findings by severity, file, rule and
+  scanner; inspect recommendations, provenance and references.
+- **Architecture in context:** review resolved dependency graphs, structural risk,
+  design principles and systems-thinking assessments, with unassessable areas
+  identified rather than treated as failures.
+- **Clear quality gates:** inspect category scores, scanner coverage and CI status
+  separately. Scanner failures remain visible and affect coverage.
+- **Your choice of workflow:** run a one-shot CLI scan, use the self-hosted web
+  interface, or integrate the API and machine-readable reports into CI.
+- **Local by default:** scans work offline after installation. Source is treated as
+  data; repository scripts and dependency installation are not run. Optional LLM
+  review is disabled by default and requires explicit source-transmission consent.
+
+## Quick start: Docker
+
+The alpha image targets **Linux x86_64**. Mount your repository read-only and choose
+an existing reports directory outside it:
+
+```sh
+docker run --rm --network none \
+  -v /absolute/path/to/source:/workspace:ro \
+  -v /absolute/path/to/reports:/reports \
+  jfscoertzen/antislopscan:1.0.0-alpha.1 \
+  cli --source /workspace --output /reports
+```
+
+The container runs as UID/GID 1000, so the source must be readable and the reports
+directory writable by that user. Use `jfscoertzen/antislopscan:alpha` to follow the
+current alpha image. The report directory receives HTML, PDF, JSON and SARIF.
+
+Prefer a browser? Clone this repository and start the Compose appliance:
+
+```sh
+git clone https://github.com/jfscoertzen/AntiSlopScan.git
+cd AntiSlopScan
+ANTISLOPSCAN_SOURCE=/absolute/path/to/repositories docker compose up -d --build
+```
+
+Open [localhost:3000](http://localhost:3000). History persists in a Docker volume;
+the source mount is read-only. See [Run with Docker](#run-with-docker) for security,
+configuration and offline installation details.
+
+## Local executable or npm package
+
+Download the Linux x86_64 executable archive or npm tarball from
+[GitHub Releases](https://github.com/jfscoertzen/AntiSlopScan/releases). The
+executable archive bundles Node and production dependencies; it needs a compatible
+glibc-based Linux system and `prlimit`:
+
+```sh
+mkdir antislopscan && cd antislopscan
+# Extract antislopscan-1.0.0-alpha.1-linux-x64.tar.gz downloaded from Releases.
+tar -xzf /path/to/antislopscan-1.0.0-alpha.1-linux-x64.tar.gz
+./bin/antislopscan cli --profile portable --source /path/to/repository --output /path/to/reports
+./bin/antislopscan gui --profile portable --source /path/to/repository
+```
+
+Verify downloads against the `SHA256SUMS` file provided with the release. The
+portable profile runs the Node-based scanner set and produces HTML, JSON and SARIF.
+Use the Docker image or the full local toolchain for native scanners and PDF.
+
+To install the downloaded npm tarball globally with Node 22.22.3 or later:
+
+```sh
+npm install --global --ignore-scripts /path/to/antislopscan-1.0.0-alpha.1.tgz
+antislopscan cli --profile portable --source /path/to/repository --output /path/to/reports
+```
+
+The npm package is available as a GitHub release artifact; it has not been
+published to the npm registry. Continue below for profiles, configuration, API,
+scoring, security limits and development instructions.
 
 ## Install the npm CLI
-
-Download the Linux x86_64 release archive from [GitHub Releases](https://github.com/jfscoertzen/AntiSlopScan/releases), extract it, and run `bin/antislopscan cli --profile portable --source /path/to/repository --output /path/to/reports`. The archive includes the Node executable and bundled application dependencies. It requires a compatible glibc-based Linux system and `prlimit`; the portable profile produces HTML, JSON and SARIF.
 
 The npm release currently targets Linux x86_64 with glibc and Node 22.22.3+.
 Build an installable release from this checkout:

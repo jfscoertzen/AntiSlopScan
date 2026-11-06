@@ -20,13 +20,18 @@ quality, architecture, systems-thinking, and security assessments.
 
 ### Public alpha release
 
-In progress: publish the initial Apache-2.0 source repository and the
+Completed: published the initial Apache-2.0 source repository and the
 `1.0.0-alpha.1` Docker image and Linux x86_64 executable distribution. The
 tag-triggered release workflow builds and tests the image, checks its version,
 verifies the portable distribution, and publishes checksummed archives and a
 GitHub prerelease. The Docker Hub credential is supplied through the repository
 secret; private configuration, audit artifacts and local agent instructions are
-excluded. GitHub and Docker Hub publication require authenticated access.
+excluded. GitHub and Docker Hub publication require authenticated access. The
+release workflow and corrected CI artifact upload passed. Git history and the
+executable distribution passed a secret scan; CI now scans full Git history as
+well. Docker Hub's overview is maintained in [DOCKER_HUB.md](DOCKER_HUB.md).
+The public README includes installation paths and a dashboard screenshot captured
+from an isolated sample audit, with no private repository data.
 
 ### Branded publication reports
 

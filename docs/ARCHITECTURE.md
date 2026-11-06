@@ -52,7 +52,9 @@ Hub version/alpha tags, and creates a GitHub prerelease with SHA-256 checksums.
 Docker Hub credentials enter only through the `DOCKER_TOKEN` Actions secret.
 The [CI workflow](../.github/workflows/ci.yml) makes the self-audit report
 directory readable to the runner after the non-root container has written it,
-so the artifact uploader can collect the reports.
+so the artifact uploader can collect the reports. It also extracts the pinned
+Gitleaks binary from the built image and scans fetched Git history with redacted
+output before publishing CI artifacts.
 
 [`prepare-package.mjs`](../scripts/prepare-package.mjs) verifies installed versions
 against the authoritative lockfile and copies release provenance into config.
