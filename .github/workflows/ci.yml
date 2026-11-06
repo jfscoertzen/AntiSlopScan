@@ -1,0 +1,44 @@
+# @author Stephan Coertzen (coertzen.jfs@gmail.com)
+# @license Apache-2.0
+# antislopscan is open-source software. See LICENSE.TXT for license information.
+name: antislopscan
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and verify the complete appliance
+        run: docker build --platform linux/amd64 -t antislopscan:ci .
+      - name: Run appliance documentation checks
+        run: docker run --rm --network none --entrypoint npm antislopscan:ci run check:docs
+      - name: Extract the verified npm package
+        run: |
+          mkdir -p "$RUNNER_TEMP/antislopscan-npm"
+          packageContainer=$(docker create antislopscan:ci)
+          trap 'docker rm "$packageContainer" >/dev/null' EXIT
+          docker cp "$packageContainer:/app/artifacts/." "$RUNNER_TEMP/antislopscan-npm/"
+      - name: Self-audit with no network and read-only source
+        run: |
+          mkdir -p "$RUNNER_TEMP/antislopscan-reports"
+          sudo chown 1000:1000 "$RUNNER_TEMP/antislopscan-reports"
+          sudo chmod 700 "$RUNNER_TEMP/antislopscan-reports"
+          docker run --rm --network none --read-only --cap-drop ALL \
+            --security-opt no-new-privileges --pids-limit 256 --memory 4g \
+            --tmpfs /tmp:size=1073741824,mode=1777 \
+            -v "$PWD:/workspace:ro" -v "$RUNNER_TEMP/antislopscan-reports:/reports" \
+            antislopscan:ci cli --source /workspace \
+            --config /app/config/self-audit.json --output /reports
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: antislopscan-self-audit
+          path: ${{ runner.temp }}/antislopscan-reports/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: antislopscan-npm
+          path: ${{ runner.temp }}/antislopscan-npm/*.tgz

@@ -1,0 +1,14 @@
+{
+  "name": "antislopscan-scanner-toolchain",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@oxlint/plugins": "1.78.0",
+    "dependency-cruiser": "18.7.2",
+    "jscpd": "5.4.2",
+    "oxlint": "1.78.0",
+    "slopscore": "2.7.0"
+  }
+}

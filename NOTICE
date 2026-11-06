@@ -1,0 +1,9 @@
+antislopscan
+Author: Stephan Coertzen (coertzen.jfs@gmail.com)
+
+antislopscan is open-source software under the Apache License, Version 2.0.
+See LICENSE.TXT and THIRD_PARTY_NOTICES.md.
+
+This distribution includes independent tools and libraries under their own
+licenses. Their original notices and applicable corresponding sources must be
+preserved when redistributing the appliance.

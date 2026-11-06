@@ -1,0 +1,95 @@
+/**
+ * @author Stephan Coertzen (coertzen.jfs@gmail.com)
+ * @license Apache-2.0
+ * antislopscan is open-source software. See LICENSE.TXT for license information.
+ */
+/* Shared publication and application tokens keep their color semantics aligned. */
+:root {
+	color-scheme: light;
+	--paper: #f3f5f8;
+	--surface: #ffffff;
+	--subtle: #e9eef5;
+	--ink: #202b3c;
+	--muted: #515f72;
+	--line: #d9e0e9;
+	--control-line: #7c899a;
+	--brand-light: #52525b;
+	--brand-dark: #b8b8c2;
+	--brand: var(--brand-light);
+	--on-brand: #ffffff;
+	--accent: #935000;
+	--danger: #b3223f;
+	--danger-bg: #fff0f2;
+	--success: #126843;
+	--minor: #335b9c;
+	--info: #68528e;
+	--focus: var(--brand);
+	--selection: color-mix(in srgb, var(--brand) 9%, var(--surface));
+	--radius-sm: 8px;
+	--header-height: 76px;
+	--radius: 12px;
+	--radius-lg: 16px;
+	--space-1: 4px;
+	--space-2: 8px;
+	--space-3: 12px;
+	--space-4: 16px;
+	--space-5: 24px;
+	--space-6: 32px;
+	--space-7: 48px;
+	--shadow-panel: 0 12px 40px #172c4910;
+	--shadow-popover: 0 16px 48px #172c4924;
+	--motion-fast: 160ms;
+	--motion-medium: 240ms;
+	--ease: cubic-bezier(.2, .7, .2, 1);
+}
+
+:root[data-theme="dark"] {
+	color-scheme: dark;
+	--paper: #0b111b;
+	--surface: #131b29;
+	--subtle: #1b2535;
+	--ink: #edf2fa;
+	--muted: #abb7ca;
+	--line: #2a374b;
+	--control-line: #74849a;
+	--brand: var(--brand-dark);
+	--on-brand: #101720;
+	--accent: #e6b46d;
+	--danger: #f898a6;
+	--danger-bg: #321f2b;
+	--success: #83d8ad;
+	--minor: #95b4f2;
+	--info: #b2a1e2;
+	--shadow-panel: 0 12px 40px #00000020;
+	--shadow-popover: 0 16px 48px #00000050;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme]) {
+		color-scheme: dark;
+		--paper: #0b111b;
+		--surface: #131b29;
+		--subtle: #1b2535;
+		--ink: #edf2fa;
+		--muted: #abb7ca;
+		--line: #2a374b;
+		--control-line: #74849a;
+		--brand: var(--brand-dark);
+		--on-brand: #101720;
+		--accent: #e6b46d;
+		--danger: #f898a6;
+		--danger-bg: #321f2b;
+		--success: #83d8ad;
+		--minor: #95b4f2;
+		--info: #b2a1e2;
+		--shadow-panel: 0 12px 40px #00000020;
+		--shadow-popover: 0 16px 48px #00000050;
+	}
+}
+
+:root[data-accent="blue"] { --brand-light: #2259bf; --brand-dark: #8cb8ff; }
+:root[data-accent="violet"] { --brand-light: #6d3ad6; --brand-dark: #be9dff; }
+:root[data-accent="teal"] { --brand-light: #006b62; --brand-dark: #69d6c1; }
+:root[data-accent="orange"] { --brand-light: #99451c; --brand-dark: #f0a477; }
+:root[data-accent="rose"] { --brand-light: #ad235c; --brand-dark: #f59bbb; }
+:root[data-accent="green"] { --brand-light: #326b39; --brand-dark: #92c794; }

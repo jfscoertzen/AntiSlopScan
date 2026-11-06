@@ -1,0 +1,17 @@
+{
+  "anti-slop": {
+    "repository": "https://github.com/dmmulroy/anti-slop",
+    "revision": "e8c4880471b23ab7f216fba7b27d173a6ef07d4c",
+    "version": "0.1.2",
+    "archiveSha256": "6cfac97c93216a514bf162d854f29ff1ef1182a3bc6c4ada45f3b952c6d5a9a4",
+    "license": "MIT",
+    "modifications": "none"
+  },
+  "antislop-rust": {
+    "repository": "https://github.com/skew202/antislop",
+    "tag": "v0.3.0",
+    "version": "0.3.0",
+    "license": "MIT OR Apache-2.0",
+    "linuxX64ArchiveSha256": "3da0e84aec707b653be6f69355159467a3d815e833e1e0970f1a14d90f4e6e7c"
+  }
+}

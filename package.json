@@ -1,0 +1,100 @@
+{
+  "name": "antislopscan",
+  "version": "1.0.0-alpha.1",
+  "description": "Offline repository audits with explicit evidence and coverage",
+  "type": "module",
+  "license": "Apache-2.0",
+  "author": "Stephan Coertzen <coertzen.jfs@gmail.com>",
+  "engines": {
+    "node": ">=22.22.3"
+  },
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "libc": [
+    "glibc"
+  ],
+  "bundleDependencies": [
+    "@oxlint/plugins",
+    "@typescript-eslint/parser",
+    "ajv",
+    "dependency-cruiser",
+    "eslint",
+    "fastify",
+    "jscpd",
+    "minimatch",
+    "oxlint",
+    "pdf-lib",
+    "playwright",
+    "slopscore",
+    "typescript",
+    "vue"
+  ],
+  "bin": {
+    "antislopscan": "dist/cli.js"
+  },
+  "files": [
+    "dist/",
+    "src/",
+    "ui/",
+    "assets/",
+    "config/",
+    "schemas/",
+    "tools/vendor/",
+    "tools/requirements.lock",
+    "scripts/",
+    "tsconfig.json",
+    "tsconfig.ui.json",
+    "vite.config.ts",
+    "docs/",
+    "LICENSE.TXT",
+    "NOTICE",
+    "THIRD_PARTY_NOTICES.md",
+    ".env.example"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && npm run check:ui && node scripts/build-vendor.mjs && vite build && node scripts/export-schemas.mjs",
+    "check:ui": "vue-tsc --noEmit -p tsconfig.ui.json",
+    "test": "vitest run",
+    "start": "node --env-file-if-exists=.env dist/cli.js gui",
+    "cli": "node --env-file-if-exists=.env dist/cli.js cli",
+    "gui": "node --env-file-if-exists=.env dist/cli.js gui",
+    "audit": "node --env-file-if-exists=.env dist/cli.js audit",
+    "test:e2e": "node tests/browser.mjs && node tests/browser-ai.mjs",
+    "package": "npm run build && node scripts/prepare-package.mjs && npm pack --ignore-scripts --loglevel=error --pack-destination artifacts",
+    "prepack": "npm run build && node scripts/prepare-package.mjs",
+    "test:package": "node tests/package.mjs",
+    "check:docs": "node scripts/check-documentation.mjs",
+    "self-audit": "node dist/cli.js cli --source . --config config/self-audit.json --output /tmp/antislopscan-self-audit"
+  },
+  "dependencies": {
+    "@oxlint/plugins": "1.78.0",
+    "@typescript-eslint/parser": "8.69.0",
+    "ajv": "8.20.0",
+    "dependency-cruiser": "18.7.2",
+    "eslint": "10.10.0",
+    "fastify": "5.12.8",
+    "jscpd": "5.4.2",
+    "minimatch": "10.2.6",
+    "oxlint": "1.78.0",
+    "pdf-lib": "1.17.1",
+    "playwright": "1.56.0",
+    "slopscore": "2.7.0",
+    "typescript": "5.9.3",
+    "vue": "3.5.45"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "@vitejs/plugin-vue": "5.2.4",
+    "vite": "5.4.21",
+    "vitest": "2.1.9",
+    "vue-tsc": "3.3.14"
+  }
+}

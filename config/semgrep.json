@@ -1,0 +1,25 @@
+{
+  "rules": [
+    {
+      "id": "antislopscan.python-eval",
+      "languages": ["python"],
+      "message": "Dynamic evaluation requires validated inputs and an explicit security contract.",
+      "severity": "ERROR",
+      "pattern": "eval(...)"
+    },
+    {
+      "id": "antislopscan.js-dynamic-function",
+      "languages": ["javascript", "typescript"],
+      "message": "Function construction executes strings as code.",
+      "severity": "ERROR",
+      "pattern": "new Function(...)"
+    },
+    {
+      "id": "antislopscan.python-shell",
+      "languages": ["python"],
+      "message": "Shell execution needs an explicit input-validation contract; use argument arrays where possible.",
+      "severity": "WARNING",
+      "pattern": "subprocess.run(..., shell=True, ...)"
+    }
+  ]
+}

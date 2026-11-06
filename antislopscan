@@ -1,0 +1,7 @@
+#!/bin/sh
+# @author Stephan Coertzen (coertzen.jfs@gmail.com)
+# @license Apache-2.0
+# antislopscan is open-source software. See LICENSE.TXT for license information.
+set -eu
+ANTISLOPSCAN_PROJECT_DIRECTORY=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+exec node "$ANTISLOPSCAN_PROJECT_DIRECTORY/dist/cli.js" "$@"

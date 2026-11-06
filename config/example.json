@@ -1,0 +1,18 @@
+{
+  "$schema": "../schemas/audit-config.schema.json",
+  "version": "1.0",
+  "project": { "name": "Example Application", "source": "/workspace", "type": "auto", "languages": ["auto"] },
+  "audit": { "mode": "full", "parallelScanners": 4, "timeoutSeconds": 600, "failOnScannerError": true },
+  "scanners": {
+    "slopscore": { "enabled": true },
+    "oxlintAntiSlop": { "enabled": true, "profile": "generic" },
+    "rustAntiSlop": { "enabled": true, "profile": "antislop-standard" },
+    "eslint": { "enabled": true, "configMode": "appliance" },
+    "jscpd": { "enabled": true, "threshold": 5 },
+    "knip": { "enabled": false }
+  },
+  "architecture": { "boundaries": [], "requirements": [], "documents": [] },
+  "ai": { "enabled": false, "allowSourceTransmission": false },
+  "reports": { "formats": ["html", "pdf", "json", "sarif"], "outputDirectory": "/reports", "includeSourceSnippets": false },
+  "ci": { "enabled": true, "failBelowScore": 75, "failOnCritical": true, "minimumCoverage": 80 }
+}

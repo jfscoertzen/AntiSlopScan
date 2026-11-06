@@ -1,0 +1,72 @@
+# @author Stephan Coertzen (coertzen.jfs@gmail.com)
+# @license Apache-2.0
+# antislopscan is open-source software. See LICENSE.TXT for license information.
+services:
+  antislopscan:
+    build: .
+    image: antislopscan:latest
+    environment:
+      ANTISLOPSCAN_ORIGIN: http://localhost:3000
+      ANTISLOPSCAN_CONFIG_FILE: /config/operator.json
+      ANTISLOPSCAN_API_TOKEN: ${ANTISLOPSCAN_API_TOKEN:-${CODESENTRY_API_TOKEN:-}}
+      ANTISLOPSCAN_AI_ENABLED: ${ANTISLOPSCAN_AI_ENABLED:-false}
+      ANTISLOPSCAN_AI_PROVIDER: ${ANTISLOPSCAN_AI_PROVIDER:-openai-compatible}
+      ANTISLOPSCAN_AI_BASE_URL: ${ANTISLOPSCAN_AI_BASE_URL:-http://host.docker.internal:11434/v1}
+      ANTISLOPSCAN_AI_MODEL: ${ANTISLOPSCAN_AI_MODEL:-configured-model}
+      ANTISLOPSCAN_AI_API_KEY_ENV: ${ANTISLOPSCAN_AI_API_KEY_ENV:-AUDIT_AI_API_KEY}
+      ANTISLOPSCAN_AI_ALLOW_SOURCE_TRANSMISSION: ${ANTISLOPSCAN_AI_ALLOW_SOURCE_TRANSMISSION:-false}
+      ANTISLOPSCAN_AI_MODE: ${ANTISLOPSCAN_AI_MODE:-architecture}
+      ANTISLOPSCAN_AI_TIMEOUT_SECONDS: ${ANTISLOPSCAN_AI_TIMEOUT_SECONDS:-60}
+      ANTISLOPSCAN_AI_MAX_SOURCE_BYTES: ${ANTISLOPSCAN_AI_MAX_SOURCE_BYTES:-32768}
+      ANTISLOPSCAN_AI_MAX_FILES: ${ANTISLOPSCAN_AI_MAX_FILES:-24}
+      AUDIT_AI_API_KEY: ${AUDIT_AI_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+    volumes:
+      - ${ANTISLOPSCAN_CONFIG_FILE:-./config/container-default.json}:/config/operator.json:ro
+      - ${ANTISLOPSCAN_SOURCE:-${CODESENTRY_SOURCE:-./}}:/workspace:ro
+      - codesentry-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=1073741824,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 4g
+    cpus: 4
+    restart: unless-stopped
+    networks:
+      - isolated
+  gateway:
+    image: nginxinc/nginx-unprivileged:stable-alpine@sha256:f5116ed4606f3eb015dd4a8e28cb9b351476dc0ad4bc6e9f93b19cec130cdf03
+    ports:
+      - "127.0.0.1:3000:8080"
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
+    read_only: true
+    tmpfs:
+      - /tmp:size=16777216,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 32
+    mem_limit: 64m
+    restart: unless-stopped
+    depends_on:
+      antislopscan:
+        condition: service_healthy
+        restart: true
+    networks:
+      - isolated
+      - frontend
+networks:
+  isolated:
+    internal: ${ANTISLOPSCAN_NETWORK_INTERNAL:-true}
+  frontend:
+volumes:
+  # Keep the storage identifier stable so a renamed deployment retains its history.
+  codesentry-data:

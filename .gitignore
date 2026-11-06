@@ -1,0 +1,17 @@
+node_modules/
+AGENTS.md
+/dist/
+/artifacts/
+/data/
+/reports/
+.env
+config/local.json
+*.sqlite*
+tools/node_modules/
+tools/bin/
+tools/python/
+tools/notices/
+tools/sources/
+playwright-report/
+.npm-cache/
+/config/npm-dependencies.lock.json
