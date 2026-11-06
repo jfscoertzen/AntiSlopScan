@@ -33,6 +33,12 @@ jobs:
             -v "$PWD:/workspace:ro" -v "$RUNNER_TEMP/antislopscan-reports:/reports" \
             antislopscan:ci cli --source /workspace \
             --config /app/config/self-audit.json --output /reports
+      - name: Make self-audit artifacts readable by the runner
+        if: always()
+        run: |
+          if [ -d "$RUNNER_TEMP/antislopscan-reports" ]; then
+            sudo chmod -R a+rX "$RUNNER_TEMP/antislopscan-reports"
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
