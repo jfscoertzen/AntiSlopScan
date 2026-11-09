@@ -1,5 +1,37 @@
 # Validation record
 
+## Alpha 2 published — 2026-11-09
+
+[`v1.0.0-alpha.2`](https://github.com/jfscoertzen/AntiSlopScan/releases/tag/v1.0.0-alpha.2)
+is a published, non-draft GitHub prerelease at source commit
+`1814f893156936089d07c45697d72b911d040e58`. Both `verify / test` and `publish`
+completed successfully in
+[release run 42604252153](https://github.com/jfscoertzen/AntiSlopScan/actions/runs/42604252153).
+The hosted gates verified the functional/browser suites, SAST/secrets,
+self-audit, Snyk, checksummed archives and extracted executable before publishing.
+
+The GitHub API reports all three assets uploaded. The downloaded `SHA256SUMS`
+agrees with GitHub's recorded SHA-256 asset digests:
+
+| Asset | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `antislopscan-1.0.0-alpha.2-linux-x64.tar.gz` | 112,704,172 | `51b94b247f5b62fb7e7608b54282a42b5869cca2e5c9cc64f0fb091e7b30fdd6` |
+| `antislopscan-1.0.0-alpha.2.tgz` | 68,923,241 | `27e6c08f1ea450f49e71e5a07016fb927ffc2ab95ff5a1295d0138790413aeec` |
+
+Anonymous Docker registry manifest reads confirm that
+`jfscoertzen/antislopscan:1.0.0-alpha.2` and `jfscoertzen/antislopscan:alpha`
+both resolve to
+`sha256:ff95070e7a8a9f5730eef8c5dc30c44893a9430e1f40988eed6242e35541b11a`.
+The exact verified image was transferred between workflow jobs without rebuilding.
+
+The [branded HTML/PDF report artifact](https://github.com/jfscoertzen/AntiSlopScan/actions/runs/42604252153/artifacts/13667058512)
+and [raw verification evidence](https://github.com/jfscoertzen/AntiSlopScan/actions/runs/42604252153/artifacts/13667371853)
+are retained by GitHub for the configured period. Article drafts and `AGENTS.md`
+were not committed; public package exclusions were checked after actual offline
+installation. The new committed history also passed Gitleaks before the tag push.
+This publication does not publish the npm package to the npm registry; the
+installable npm tarball is distributed through the GitHub release.
+
 ## Alpha 2 release preparation — 2026-11-09
 
 Version metadata and public installation examples target `1.0.0-alpha.2`.

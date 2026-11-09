@@ -20,13 +20,17 @@ quality, architecture, systems-thinking, and security assessments.
 
 ### Alpha 2 release
 
-In progress: publish `v1.0.0-alpha.2` with the verified Jest/Playwright gates,
-Snyk remediation and branded CI evidence. Keep local agent instructions,
-credentials, generated audit artifacts and article drafts out of the committed
-release and distributions. Update install examples, validate the versioned
-package/container and publish through the tag-triggered GitHub workflow. Confirm
-the hosted verification, prerelease assets and Docker tags before marking this
-release complete.
+Completed on 2026-11-09: published
+[`v1.0.0-alpha.2`](https://github.com/jfscoertzen/AntiSlopScan/releases/tag/v1.0.0-alpha.2)
+through the successful
+[tag workflow](https://github.com/jfscoertzen/AntiSlopScan/actions/runs/42604252153).
+Hosted verification passed before publication. The release provides the Linux
+x86_64 executable, installable npm tarball and matching checksum manifest;
+Docker Hub serves both `1.0.0-alpha.2` and `alpha` at the same verified digest.
+Branded CI reports and raw test/scan evidence are retained in workflow artifacts.
+Local agent instructions, credentials, audit artifacts and article drafts were
+excluded from the commit and release distributions. Public install examples and
+release notes are updated; publication evidence is in [VALIDATION.md](VALIDATION.md).
 
 ### Snyk dependency and source security gate
 
