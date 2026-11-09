@@ -3,7 +3,7 @@
  * @license Apache-2.0
  * antislopscan is open-source software. See LICENSE.TXT for license information.
  */
-import { expect, test } from 'vitest';
+import { expect, test } from '@jest/globals';
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -61,3 +61,39 @@ const apiContract = async (): Promise<void> => {
 };
 
 test('API confines jobs, authenticates requests, and returns persisted artifacts', apiContract);
+
+
+/** Reject malformed requests and unavailable resources without creating audit jobs; bound a small authenticated request burst. */
+const apiEdgeCases = async (): Promise<void> => {
+	const directory = await mkdtemp(join(tmpdir(), 'antislopscan-api-edges-'));
+	const sourceRoot = join(directory, 'source');
+	const token = randomBytes(24).toString('hex');
+	const headers = { authorization: `Bearer ${token}`, host: 'localhost:3000' };
+
+	await mkdir(sourceRoot);
+	const server = await createServer({ sourceRoot, dataDirectory: join(directory, 'data'), token, origin: 'http://localhost:3000' });
+
+	try {
+		expect((await server.inject({ method: 'POST', url: '/api/audits', headers: { ...headers, 'content-type': 'application/json' }, payload: '{invalid' })).statusCode).toBe(400);
+		expect((await server.inject({ method: 'POST', url: '/api/audits', headers, payload: {} })).statusCode).toBe(400);
+		expect((await server.inject({ method: 'GET', url: '/api/audits/00000000-0000-4000-8000-000000000000', headers })).statusCode).toBe(404);
+		expect((await server.inject({ method: 'GET', url: '/api/audits/missing/reports/html' })).statusCode).toBe(401);
+		for (const query of ['limit=0', 'limit=-1', 'offset=-1', 'limit=abc']) {
+			expect((await server.inject({ method: 'GET', url: `/api/audits?${query}`, headers })).statusCode).toBe(400);
+		}
+		const started = performance.now();
+
+		for (let request = 0; request < 100; request += 1) {
+			const response = await server.inject({ method: 'GET', url: '/api/audits', headers });
+
+			expect(response.statusCode).toBe(200);
+			expect(response.json().audits).toEqual([]);
+		}
+		expect(performance.now() - started).toBeLessThan(10000);
+	} finally {
+		await server.close();
+		await rm(directory, { recursive: true, force: true });
+	}
+};
+
+test('API rejects malformed inputs, protects missing exports and handles an isolated request burst', apiEdgeCases);

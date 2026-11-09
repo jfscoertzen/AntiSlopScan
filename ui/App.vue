@@ -465,7 +465,6 @@ onUnmounted(cleanup);
 		</div>
 	</main>
 	<footer>
-		<span class="footer-brand">antislopscan</span> / Open-source software / Apache-2.0 / A&amp;R Group
-		Engineering (Pty) Ltd.
+		<span class="footer-brand">antislopscan</span> / Open-source software / Apache-2.0
 	</footer>
 </template>

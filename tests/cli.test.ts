@@ -3,7 +3,7 @@
  * @license Apache-2.0
  * antislopscan is open-source software. See LICENSE.TXT for license information.
  */
-import { expect, test } from 'vitest';
+import { expect, test } from '@jest/globals';
 import { execFile, spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { once } from 'node:events';
@@ -97,7 +97,8 @@ const guiContract = async (): Promise<void> => {
 	const reservation = createServer();
 
 	await mkdir(source);
-	await promisify(reservation.listen.bind(reservation))(0, '127.0.0.1');
+	reservation.listen(0, '127.0.0.1');
+	await once(reservation, 'listening');
 	const address = reservation.address();
 
 	if (!address || typeof address === 'string') throw new Error('Could not reserve a GUI test port');
@@ -126,7 +127,8 @@ const guiContract = async (): Promise<void> => {
 			if (ready) break;
 			await delay(50);
 		}
-		expect(ready, stderr).toBe(true);
+		if (!ready) throw new Error(`GUI did not start: ${stderr}`);
+		expect(ready).toBe(true);
 		expect((await fetch(`http://127.0.0.1:${port}/api/audits`)).status).toBe(401);
 		expect((await fetch(`http://127.0.0.1:${port}/api/audits`, { headers: { authorization: `Bearer ${token}` } })).status).toBe(200);
 		expect(await (await fetch(`http://127.0.0.1:${port}/`)).text()).toContain('<title>antislopscan');
@@ -166,3 +168,44 @@ test('public CLI exposes the renamed executable and explicit mode contracts', co
 test('CLI reports go to the user-selected output directory', outputContract);
 test('GUI mode starts the browser application using selected paths', guiContract);
 test('renamed deployment settings retain legacy compatibility', environmentContract);
+
+
+/** Distinguish a quality failure, missing scanner and invalid input using real built CLI runs and valid machine-readable reports. */
+const exitCodeContract = async (): Promise<void> => {
+	const directory = await mkdtemp(join(tmpdir(), 'antislopscan-cli-exits-'));
+	const source = join(directory, 'source');
+	const configPath = join(directory, 'policy.json');
+	const scanners: Record<string, { enabled: boolean }> = {};
+
+	for (const scanner of scannerCatalog) if (!['systems', 'ai'].includes(scanner.id)) scanners[scanner.id] = { enabled: false };
+	try {
+		await mkdir(source);
+		await writeFile(join(source, 'index.ts'), 'export const execute = (input: string) => eval(input);\n');
+		await writeFile(configPath, JSON.stringify({ scanners, reports: { formats: ['json'] }, ci: { failOnCritical: true } }));
+		const quality = await runCli(['cli', '--source', source, '--config', configPath, '--output', join(directory, 'quality')]);
+		const qualityReport = JSON.parse(await readFile(join(directory, 'quality/report.json'), 'utf8'));
+
+		expect(quality.exitCode).toBe(1);
+		expect(qualityReport.ci.passed).toBe(false);
+		expect(qualityReport.findings.some(/** Confirm a supported dangerous-code finding triggered this quality failure. */ (finding: { severity: string }) => finding.severity === 'critical')).toBe(true);
+		scanners.knip = { enabled: true };
+		await writeFile(configPath, JSON.stringify({ scanners, reports: { formats: ['json'] } }));
+		const unavailable = await runCli(['cli', '--source', source, '--config', configPath, '--output', join(directory, 'unavailable')]);
+		const scannerReport = JSON.parse(await readFile(join(directory, 'unavailable/report.json'), 'utf8'));
+
+		expect(unavailable.exitCode).toBe(2);
+		expect(scannerReport.scanners.find(/** Select the deliberately unavailable adapter. */ (scanner: { id: string }) => scanner.id === 'knip').status).toBe('unavailable');
+		await writeFile(configPath, '{malformed');
+		const invalid = await runCli(['cli', '--source', source, '--config', configPath, '--output', join(directory, 'invalid')]);
+		const missing = await runCli(['cli', '--source', join(directory, 'missing'), '--output', join(directory, 'missing reports')]);
+
+		expect(invalid.exitCode).toBe(3);
+		expect(missing.exitCode).toBe(3);
+		expect((await readdir(directory)).includes('invalid')).toBe(false);
+		expect(await readFile(join(source, 'index.ts'), 'utf8')).toBe('export const execute = (input: string) => eval(input);\n');
+	} finally {
+		await rm(directory, { recursive: true, force: true });
+	}
+};
+
+test('CLI returns distinct quality, scanner and configuration failure exit codes', exitCodeContract);

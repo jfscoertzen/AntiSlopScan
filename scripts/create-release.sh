@@ -25,6 +25,9 @@ cp "$1" "$output/antislopscan-$version.tgz"
 tar -xzf "$1" -C "$work/release/app" --strip-components=1
 cat > "$work/release/bin/antislopscan" <<'LAUNCHER'
 #!/bin/sh
+# @author Stephan Coertzen (coertzen.jfs@gmail.com)
+# @license Apache-2.0
+# antislopscan is open-source software. See LICENSE.TXT for license information.
 set -eu
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 exec "$root/bin/node" "$root/app/dist/cli.js" "$@"

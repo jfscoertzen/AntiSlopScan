@@ -3,7 +3,7 @@
  * @license Apache-2.0
  * antislopscan is open-source software. See LICENSE.TXT for license information.
  */
-import { expect, test } from 'vitest';
+import { expect, test } from '@jest/globals';
 import { existsSync } from 'node:fs';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -39,7 +39,7 @@ const adapterContract = async (): Promise<void> => {
 			let status = '';
 
 			for (const scanner of result.scanners) { if (scanner.id === id) status = scanner.status; }
-			expect(status, `${id} must execute rather than silently disappear`).toBe('completed');
+			expect({ id, status }).toEqual({ id, status: 'completed' });
 		}
 		expect(result.scores.coverage).toBe(92);
 		expect(result.ci.passed).toBe(false);
@@ -56,4 +56,4 @@ const adapterContract = async (): Promise<void> => {
 /** Identify actual secret scanner attribution after deduplication. */
 const hasGitleaks = (finding: { sources: string[] }): boolean => finding.sources.includes('gitleaks');
 
-test.skipIf(!installed)('all bundled scanners execute and normalize actual JS/TS/Python evidence', adapterContract);
+(installed ? test : test.skip)('all bundled scanners execute and normalize actual JS/TS/Python evidence', adapterContract);

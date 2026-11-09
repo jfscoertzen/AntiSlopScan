@@ -4,41 +4,43 @@
 name: Alpha release
 on:
   push:
-    tags:
-      - 'v*-alpha.*'
+    tags: ['v*-alpha.*']
 permissions:
   contents: read
+defaults:
+  run:
+    shell: bash
 jobs:
+  verify:
+    uses: ./.github/workflows/verify.yml
+    secrets:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+    with:
+      release: true
   publish:
-    runs-on: ubuntu-latest
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22.22.3'
       - name: Verify release version
-        shell: bash
+        run: test "$GITHUB_REF_NAME" = "v$(node -p "require('./package.json').version")"
+      - uses: actions/download-artifact@v4
+        with:
+          name: verified-release
+          path: artifacts/ci
+      - name: Load the tested image and verify asset checksums
         run: |
-          set -euo pipefail
-          version=$(node -p "require('./package.json').version")
-          test "${GITHUB_REF_NAME}" = "v${version}"
-      - name: Build and verify appliance
-        run: docker build --platform linux/amd64 -t antislopscan:release .
-      - name: Assemble executable and npm distributions
-        run: sh scripts/create-release.sh antislopscan:release "$RUNNER_TEMP/release"
-      - name: Verify portable executable
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/verify" "$RUNNER_TEMP/source" "$RUNNER_TEMP/reports"
-          tar -xzf "$RUNNER_TEMP/release/antislopscan-${GITHUB_REF_NAME#v}-linux-x64.tar.gz" -C "$RUNNER_TEMP/verify"
-          printf 'export const values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];\n' > "$RUNNER_TEMP/source/values.ts"
-          printf 'import { values } from "./values.js";\nexport const total = (multiplier: number) => {\n let result = 0;\n for (const item of values) {\n  const scaled = item * multiplier;\n  const remainder = scaled %% 3;\n  result += remainder === 0 ? scaled / 3 : scaled - remainder;\n }\n return result;\n};\n' > "$RUNNER_TEMP/source/index.ts"
-          printf '{"scoring":{"minimumOverallScore":0,"minimumCategoryScore":0},"ci":{"failBelowScore":0,"failOnCritical":false}}\n' > "$RUNNER_TEMP/policy.json"
-          "$RUNNER_TEMP/verify/bin/antislopscan" cli --profile portable --source "$RUNNER_TEMP/source" --config "$RUNNER_TEMP/policy.json" --output "$RUNNER_TEMP/reports"
-          test -s "$RUNNER_TEMP/reports/report.json"
+          gzip -dc artifacts/ci/verified-image.tar.gz | docker load
+          cd artifacts/ci/release
+          sha256sum --check SHA256SUMS
       - name: Authenticate to Docker Hub
         env:
           DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
@@ -48,11 +50,14 @@ jobs:
         run: |
           set -euo pipefail
           version=${GITHUB_REF_NAME#v}
-          docker tag antislopscan:release "jfscoertzen/antislopscan:$version"
-          docker tag antislopscan:release jfscoertzen/antislopscan:alpha
+          docker tag antislopscan:ci "jfscoertzen/antislopscan:$version"
+          docker tag antislopscan:ci jfscoertzen/antislopscan:alpha
           docker push "jfscoertzen/antislopscan:$version"
           docker push jfscoertzen/antislopscan:alpha
       - name: Publish GitHub prerelease
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" "$RUNNER_TEMP"/release/* --prerelease --title "AntiSlopScan ${GITHUB_REF_NAME}" --notes "Alpha release for Linux x86_64. Includes the portable executable distribution, npm tarball, checksums, and the Docker image jfscoertzen/antislopscan:${GITHUB_REF_NAME#v}."
+        run: gh release create "$GITHUB_REF_NAME" artifacts/ci/release/* --prerelease --title "AntiSlopScan ${GITHUB_REF_NAME}" --notes-file docs/RELEASE_NOTES.md
+      - name: Clear registry credentials
+        if: always()
+        run: docker logout

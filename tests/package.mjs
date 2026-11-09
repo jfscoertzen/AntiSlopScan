@@ -9,7 +9,7 @@ import { once } from 'node:events';
 import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
@@ -56,7 +56,7 @@ try {
 		const audit = await execute(process.execPath, [entry, 'cli', '--profile', 'portable', '--source', source, '--config', policy, '--output', output], { cwd: directory, env: environment, timeout: 60000, maxBuffer: 1048576 }).catch(/** Preserve synthetic-fixture diagnostics when an installed scanner fails. @param {Error} error @returns {Promise<never>} */ async (error) => {
 			const report = JSON.parse(await readFile(join(output, 'report.json'), 'utf8'));
 
-			await writeFile(join(root, 'artifacts/npm-package-failure.json'), JSON.stringify(report, null, 2));
+			await writeFile(join(resolve(process.env.ANTISLOPSCAN_TEST_ARTIFACTS ?? 'artifacts'), 'npm-package-failure.json'), JSON.stringify(report, null, 2));
 			throw error;
 		});
 		const result = JSON.parse(await readFile(join(output, 'report.json'), 'utf8'));
@@ -77,7 +77,11 @@ try {
 		assert.equal(JSON.parse(await readFile(join(installed, 'config/npm-dependencies.lock.json'), 'utf8')).version, manifest.version);
 		assert.equal((await readdir(join(installed, 'tools'))).includes('python'), false);
 		assert.equal((await readdir(join(installed, 'tools'))).includes('bin'), false);
-		assert.equal((await readdir(join(installed, 'node_modules'))).includes('vitest'), false);
+		assert.equal((await readdir(join(installed, 'node_modules'))).includes('jest'), false);
+		assert.equal((await readdir(installed)).includes('AGENTS.md'), false);
+		assert.equal((await readdir(installed)).includes('.env'), false);
+		assert.equal((await readdir(join(installed, 'config'))).includes('local.json'), false);
+		assert.equal((await readdir(join(installed, 'docs'))).includes('articles'), false);
 		console.log(`${global ? 'Global' : 'Local'} tarball install with an empty offline cache: CLI, real npm scanners, reports, lock and notices passed.`);
 	}
 	const reservation = createServer();

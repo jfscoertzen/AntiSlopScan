@@ -1,5 +1,218 @@
 # Validation record
 
+## Alpha 2 release preparation — 2026-11-09
+
+Version metadata and public installation examples target `1.0.0-alpha.2`.
+The fresh native pipeline in `artifacts/release-alpha.2/` passed all 64 Jest
+cases, including offline global/local installation, GUI startup and 194 required
+Playwright captures. SAST/secrets, self-audit and both real Snyk scans passed.
+Snyk Code reported zero findings; dependencies reported zero high/critical and
+four medium combinations. HTML/PDF CI reports completed with valid evidence.
+
+Release inspection found local article drafts under the former broad `docs/`
+package inclusion. The final allowlist includes only top-level public Markdown
+and named public configuration files; the Docker context excludes the drafts.
+Installed-package assertions cover absence of articles, `AGENTS.md`, `.env` and
+`config/local.json`. The versioned tarball was inspected directly. Staged source
+passed exact-value checks against available credentials and checks for the
+removed legacy organization. New release Git metadata uses the personal author
+email; global Git identity is unchanged. Hosted publication remains gated by
+the tag workflow and its own verification results.
+
+## Snyk integration and remediation — 2026-11-09
+
+Both final full verification paths passed:
+
+```sh
+ANTISLOPSCAN_CI_OUTPUT=artifacts/local-snyk-ci ANTISLOPSCAN_CHROMIUM_SANDBOX=false npm run ci:local
+BUILDX_CONFIG=/tmp/antislopscan-buildx npm run ci:docker
+```
+
+The final Docker run ID is `3ec18884-720e-47db-8b7a-7734421300fd`; native is
+`24360b64-cb7f-4b1a-9f9e-b9cbf8fd4241`. Each ran **64 passing Jest cases**, with
+no failures or skips: **56 backend, five CLI, one offline distribution and two
+Playwright UI cases**. Both retained **194 required screenshots** (170 dashboard,
+24 model review), with matching run IDs and complete manifests. Critical-module
+coverage is **100% lines, statements and functions; 84.53% branches**, scoped to
+the five documented modules. Both passed SAST, full-history/working-tree
+Gitleaks and the self-audit at **93/100**, **100% applicable scanner coverage**.
+Docker additionally passed archive checksums and the extracted executable audit;
+its owned verification container was removed.
+
+The actual pinned **Snyk 1.1308.4** scans completed in both paths:
+
+| Scan | Before remediation | Final observed result |
+| --- | --- | --- |
+| Snyk Code | Three path-handling observations: two medium, one low | Zero findings; actual exit 0, valid Snyk Code SARIF |
+| Snyk dependencies, including dev | One critical esbuild advisory and one high uri-js advisory, plus medium paths | Zero high/critical; four medium advisory/package/version combinations, with every reported dependency path retained |
+
+Raw initial/live snapshots are in ignored `artifacts/snyk-before/`,
+`artifacts/snyk-after/` and `artifacts/snyk-verified/`. Final per-run evidence is
+`snyk.json`, `snyk/dependencies.json` and `snyk/code.json` in each CI output folder.
+Snyk assessed 470 dependencies. Its issue counts are not a numeric repository
+score or proof of zero vulnerabilities. The four medium combinations are glob
+10.5.0/13.0.6 and minimatch 9.0.9/10.2.6. The separate npm gate reports three low
+and 20 moderate affected packages in Docker, three low and 21 moderate natively,
+with no high/critical in either. The underlying direct npm advisory IDs match;
+the CLI versions propagate affected peer/dependency edges differently. Raw
+JSON retains the exact results rather than forcing those totals to agree.
+
+Regression fixtures failed before the source hardening: snippets accepted an
+out-of-inventory traversal path and the internal worker accepted an external
+context file. The fixes require inventoried, bounded, no-follow snippet reads and
+the worker's own regular `context.json`; safe fixed error metadata replaces raw
+scanner exception reflection. Vite 7.3.7, plugin 6.0.10 and locked esbuild remove
+the observed patched-tool advisories. The ESLint/Ajv-scoped override installs
+fast-uri 3.1.9 in place of abandoned uri-js, with retained notices. Actual draft-07
+reference validation, invalid data rejection, bounded hostile Unicode paths,
+scanner integration and empty-cache global/local installs validate compatibility.
+No `.snyk` suppression policy or broad finding exclusions were introduced.
+
+The first Docker attempt rejected npm 12's alias lock layout under npm 10; the
+lockfile was regenerated with pinned npm 10.9.8. Native npm 12 initially rejected
+a version-qualified parent override in a bundled release. The final override is
+scoped through `eslint → ajv → uri-js`, without overriding the Ajv version.
+Fresh native install/packaging and both full pipelines subsequently passed.
+Earlier failed runs were recorded as failures and produced failure reports.
+
+The final branded Docker HTML/PDF reports include Snyk execution and gate status,
+durations, severity counts, dependency fix versions/paths, advisory links and
+source/data-flow locations when present. The collector recomputes findings from
+current raw artifacts and rejects mismatched run IDs or forged summaries.
+The PDF was regenerated from unchanged scan/test evidence after a print-only
+table-header refinement. Network and page JavaScript were disabled during
+rendering. The final Docker PDF has **142 A4 pages**; cover, pipeline, Snyk
+tables/remediation, screenshot/contact-sheet evidence and final diagnostics were
+rendered with Poppler and visually reviewed. A separate offline browser check
+opened/closed the first Snyk disclosure with Enter and verified its advisory URL;
+`artifacts/ci/snyk-report-review.png` records that review. Native HTML/PDF reports
+are retained separately. Exact-value checks found the available Snyk/Docker
+credential values in none of 290 publishable files, current CI text evidence or
+the image environment; values were not displayed. Callable documentation
+passes in 133 original files, all 64 source test contracts match TESTING.md,
+workflow YAML and local links validate, and `git diff --check` is clean.
+Seven editable architecture diagrams were updated/checked against source;
+an attempted temporary Mermaid renderer installation was unavailable because
+its chalk dependency could not be resolved, so no new diagram render is claimed.
+
+GitHub workflow wiring uses repository secret `SNYK_TOKEN` and optional variable
+`SNYK_ORG`. Missing entitlement/credentials remain unavailable failures; the
+workflow does not expose secrets to fork PRs. Remote secret configuration and
+an actual GitHub Actions run were not performed, and no push or release was made.
+[SNYK.md](SNYK.md) records commands, service/source-transmission scope, version
+provenance, compatibility limits and maintenance requirements.
+
+## Detailed test inventory and branded CI reports — 2026-11-09
+
+The final complete Docker run passed using:
+
+```sh
+BUILDX_CONFIG=/tmp/antislopscan-buildx npm run ci:docker
+```
+
+Run ID: `9e9b6aaa-53e0-4235-8f29-d84d449553cf`. Its `pipeline.json` records all
+ten build, application, cleanup and distribution steps as passed. The run
+includes **54 passing Jest cases**, with no failed or skipped cases: **46 backend,
+five CLI, one distribution and two Playwright UI cases**. The seven new backend
+cases exercise report failure handling, artifact confinement/freshness/size
+limits, missing and unmapped test outcomes, credential redaction, hostile HTML
+escaping, source inventory integrity and incomplete screenshot rejection. One
+scenario invokes a real failing Node syntax check and verifies that the failed
+pipeline still produces readable HTML and PDF, with later gates marked skipped.
+
+The browser scenarios produced **194 of 194 required screenshots**: **170
+dashboard and 24 model-review captures**. Every manifest is complete and belongs
+to this run. The report verified each required checkpoint against its source
+registry and checked current PNG dimensions, signatures and SHA-256 digests.
+Coverage includes assessment/authentication, history, findings/filtering/evidence,
+exports, scanner coverage, architecture/principles, configured model review,
+motion/keyboard states and the actual tested theme/accent/viewport combinations.
+Screenshots contain disposable fixtures. Only visible password inputs are
+masked; nonvisual behavior is established by assertions, not screenshots alone.
+
+Critical-module coverage remains **100% lines, statements and functions** and
+**84.61% branches**, scoped to the five documented modules. SAST, full-history
+and working-tree Gitleaks and dependency-advisory gates passed. The live npm
+audit recorded **three low and 20 moderate advisories, zero high/critical**;
+the report retains those lower-severity issues. The self-audit passed at
+**93/100**, with **100% applicable scanner coverage** and no configured boundary
+violations. Checksummed archives and the extracted portable executable audit
+passed. The owned test container was removed.
+
+`artifacts/ci/ci-report.html` and `ci-report.pdf` embed the existing AntiSlopScan
+mark, topology artwork and palette. They include every source-defined assertion,
+actual case outcome/duration, gate checks, scoped coverage, scanner versions and
+outcomes, advisories, self-audit, captioned screenshots and sanitized log tails.
+The HTML is standalone; the final **135-page A4 PDF** expands all case/log details
+and includes page numbers, with no JavaScript or forms. Poppler rendering was
+used to inspect the cover, pipeline continuation, test assertions, feature
+screenshots, responsive contact sheets and final diagnostic page. Print durations
+and the redundant closing footer were refined after that review. Regeneration used the unchanged run's
+evidence through `ANTISLOPSCAN_CHROMIUM_SANDBOX=false npm run ci:report`.
+`report-status.json` records both documents completed with valid evidence.
+Callable documentation checks passed in 129 original files, the generated
+54-case inventory check passed, workflow YAML parsed successfully, and
+`git diff --check` was clean. The local GitHub job-summary renderer also ran
+successfully against this completed journal.
+
+The reusable GitHub workflow uploads a dedicated viewable-report artifact even
+after gate failure, retains the full raw evidence separately, and produces an
+artifact-linked job summary. This task tested the local Docker equivalent;
+it did not push workflow changes or execute a new GitHub Actions run. Release
+publication is a separate gated job and is not reported as executed. Test and
+visual inventories are maintained by `npm run docs:tests`; `check:testing`
+rejects drift. Existing runtime contracts and scoring remain unchanged.
+
+## CI/CD verification — 2026-11-09
+
+Both the native `npm run ci:local` application pipeline and the complete
+`npm run ci:docker` pipeline passed after network and process access were restored.
+In this managed session, Docker buildx metadata used a writable temporary folder:
+
+```sh
+ANTISLOPSCAN_CI_OUTPUT=artifacts/local-ci ANTISLOPSCAN_CHROMIUM_SANDBOX=false npm run ci:local
+BUILDX_CONFIG=/tmp/antislopscan-buildx npm run ci:docker
+```
+
+The Docker run used the pinned Node 22.22.3 image, a non-root UID, read-only root,
+no capabilities or Docker socket, six GiB memory, four CPUs and 512 PIDs.
+Its two GiB temporary mount permits execution solely for trusted installation
+smoke tests. Production Compose mounts were not modified.
+
+| Verification | Result |
+| --- | --- |
+| Backend Jest | 39 passed, including actual scanners/API jobs and production Vue comment regression |
+| CLI Jest | 5 passed, including selected report paths, GUI startup and exit codes 0/1/2/3 |
+| Distribution Jest | 1 passed: empty-cache offline global/local npm installs, bundled scanners and packaged GUI |
+| Playwright through Jest | 2 passed: assessment/history/evidence/exports and controlled model review; both themes, six widths, keyboard/contrast and motion checks |
+| Critical-module V8 coverage | 100% lines/statements/functions; 84.61% branches across the five documented core modules |
+| SAST | Passed; all applicable requested scanners completed |
+| Gitleaks | Passed full fetched Git history and working-tree checks; no detected leaks |
+| Dependency advisories | Passed the high/critical threshold with explicit `--include=dev`; lower-severity advisories remain recorded |
+| Self-audit | 93/100, 100% applicable scanner coverage, no configured boundary violations; HTML/PDF/JSON/SARIF completed |
+| Executable archive | SHA-256 checks passed; extracted executable performed a real portable audit at 100% tool coverage |
+| Cleanup | Test container removed after verification |
+
+There were **47 passing Jest cases with no skipped or failed cases**. The shared
+runner executed backend → CLI → distribution → UI → security → self-audit, then
+the Docker wrapper assembled and tested the executable archives. Evidence is in
+`artifacts/ci/summary.json`, each Jest JSON/log, `coverage/`, `sast/`,
+`self-audit/`, `security.json`, `executable.json` and `release/SHA256SUMS`.
+Native evidence is separate under `artifacts/local-ci/`. These artifacts are
+ignored by Git. No image push, tag or release publication was performed.
+
+The rerun exposed three configuration/runtime issues, all fixed and reverified:
+Vue SFC parsing discarded template comments in production mode; the compiler now
+explicitly retains spans for masking, with a fresh-process failing-before/passing-
+after regression. The CI temporary mount needed `exec` to launch its trusted
+installed CLI. Finally, npm needed `--include=dev` to prevent production-mode
+omission of build/test dependencies. Vite 5 was upgraded to 6.4.5 after the live
+advisory gate identified an existing high-severity
+[Vite/launch-editor advisory](https://github.com/advisories/GHSA-587h-7wmj-h5pm).
+The current Vue plugin supports Vite 6, and production build/type/documentation
+checks passed. This verification establishes functional gate behavior, not a
+claim of zero vulnerabilities or a published GitHub Actions run for these changes.
+
 Validation performed on 2026-11-05 and 2026-11-06 with Node 22.22.3, Python 3.12 locally,
 Docker 29.1.3, Chromium revision 1194, and the pinned scanner toolchain.
 The Docker image uses Debian bookworm's Python runtime and the same package locks.

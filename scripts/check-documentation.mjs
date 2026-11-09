@@ -8,7 +8,7 @@ import { extname, join } from 'node:path';
 import ts from 'typescript';
 import { analysisSource } from '../dist/analysis/source.js';
 
-const files = ['vite.config.ts', 'vitest.config.ts'];
+const files = ['vite.config.ts', 'jest.config.mjs'];
 const failures = [];
 
 /** Discover original source files only, excluding generated and third-party dependency trees. @param {string} directory @returns {Promise<void>} */
@@ -17,7 +17,7 @@ const discover = async (directory) => {
 		const path = join(directory, entry.name);
 
 		if (entry.isDirectory()) { await discover(path); continue; }
-		if (['.js', '.mjs', '.ts', '.vue'].includes(extname(path))) files.push(path);
+		if (['.js', '.mjs', '.cjs', '.ts', '.vue'].includes(extname(path))) files.push(path);
 	}
 };
 

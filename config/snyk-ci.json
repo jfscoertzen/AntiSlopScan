@@ -1,0 +1,7 @@
+{
+  "version": "1.1308.4",
+  "sha256": "979172ee128903f50e43fff221f22a0689579f22c086dabaa0d1a5416485b9ba",
+  "licenseSha256": "e5be3529681de6f68e7778ff486c3fea6390a4067b31ea53785a07990475d1c3",
+  "severityThreshold": "high",
+  "timeoutSeconds": 600
+}

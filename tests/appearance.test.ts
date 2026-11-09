@@ -3,7 +3,7 @@
  * @license Apache-2.0
  * antislopscan is open-source software. See LICENSE.TXT for license information.
  */
-import { expect, test } from 'vitest';
+import { expect, test } from '@jest/globals';
 import { accentOptions, normalizeAccent } from '../ui/appearance.js';
 
 /** Preserve each supported selection and use the neutral default for absent or hostile browser storage. */

@@ -9,6 +9,8 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import Fastify from 'fastify';
 import { chromium } from 'playwright';
+import { visualEvidence } from './helpers/visual-evidence.mjs';
+import { availablePort, browserArtifacts, failureEvidence } from './helpers/browser.mjs';
 import { createServer } from '../dist/server.js';
 import { parseConfig } from '../dist/config.js';
 import { scannerCatalog } from '../dist/scanners/catalog.js';
@@ -16,9 +18,13 @@ import { scannerCatalog } from '../dist/scanners/catalog.js';
 const directory = await mkdtemp(join(tmpdir(), 'antislopscan-ai-browser-'));
 const sourceRoot = join(directory, 'source');
 const provider = Fastify({ logger: false });
-const port = Number(process.env.ANTISLOPSCAN_AI_E2E_PORT ?? 31988);
+const port = Number(process.env.ANTISLOPSCAN_AI_E2E_PORT ?? await availablePort());
 const origin = `http://localhost:${port}`;
 const failures = [];
+const artifacts = await browserArtifacts();
+const visual = await visualEvidence(artifacts, 'ui-model');
+let tracedContext;
+
 let calls = 0;
 
 /** Emulate an actual structured provider response selecting appliance-assigned evidence IDs. */
@@ -111,6 +117,8 @@ try {
 	assert.equal(rejected.statusCode, 400);
 	assert.equal(calls, 0);
 	const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
+	tracedContext = page.context();
+	await tracedContext.tracing.start({ screenshots: true, snapshots: true });
 
 	page.on('pageerror', recordFailure);
 	await page.goto(origin);
@@ -121,10 +129,12 @@ try {
 	);
 	assert.equal(await page.getByRole('combobox', { name: 'LLM provider', exact: true }).isDisabled(), true);
 	assert.equal(await page.getByLabel('LLM base URL', { exact: true }).getAttribute('readonly'), '');
+	await visual.capture(page, 'settings', page.locator('.ai-settings'));
 	await page.getByLabel('LLM model', { exact: true }).fill('fixture-model-v2');
 	await page.keyboard.press('Tab');
 	await page.getByLabel('Maximum source sample bytes').fill('2048');
 	await page.keyboard.press('Tab');
+	await visual.capture(page, 'configured', page.locator('.ai-settings'));
 	await page.getByRole('button', { name: 'Run repository audit', exact: true }).click();
 	await page.getByRole('heading', { name: 'Where to look first', exact: true }).waitFor({ timeout: 60000 });
 	await page
@@ -132,6 +142,7 @@ try {
 		.waitFor();
 	assert.equal(calls, 4);
 	assert.equal(await page.locator('.principle-row').count(), 14);
+	await visual.capture(page, 'overview');
 	const dry = page.locator('.principle-row').filter({ hasText: 'Do not repeat yourself' });
 
 	await dry.locator('summary').click();
@@ -140,26 +151,33 @@ try {
 			document.querySelector('.principle-explainer img')?.getAttribute('data-animated') === 'true'
 	);
 	assert.match(await dry.locator('.principle-explainer img').getAttribute('src'), /\.gif$/);
+	await visual.capture(page, 'illustration', dry);
 	await page.getByRole('button', { name: 'Pause illustrations', exact: true }).click();
 	await page.waitForFunction(
 		/** Verify explicit pause swaps the GIF for its static poster. */ () =>
 			document.querySelector('.principle-explainer img')?.getAttribute('data-animated') === 'false'
 	);
 	assert.match(await dry.locator('.principle-explainer img').getAttribute('src'), /poster.*\.png$/);
+	await visual.capture(page, 'paused', dry);
 	await page.getByRole('button', { name: 'Play illustrations', exact: true }).click();
 	await page.emulateMedia({ reducedMotion: 'reduce' });
 	await page.waitForFunction(
 		/** Verify operating-system reduced motion overrides animation preference. */ () =>
 			document.querySelector('.principle-explainer img')?.getAttribute('data-animated') === 'false'
 	);
+	await visual.capture(page, 'reduced', dry);
 	await page.emulateMedia({ reducedMotion: 'no-preference' });
 	await page.getByRole('button', { name: 'Next principles', exact: true }).click();
 	assert.equal(await page.locator('.principle-row').count(), 14);
+	await visual.capture(page, 'next');
 	await page.getByRole('button', { name: 'Previous principles', exact: true }).click();
+	await visual.capture(page, 'previous');
 	await page.getByLabel('Search principles').fill('DRY');
 	assert.equal(await page.locator('.principle-row').count(), 1);
+	await visual.capture(page, 'search');
 	await page.getByRole('combobox', { name: 'Principle assessment', exact: true }).selectOption('unassessed');
 	await page.getByText('No principle assessments match these filters.').waitFor();
+	await visual.capture(page, 'empty');
 	await page.getByRole('combobox', { name: 'Principle assessment', exact: true }).selectOption('');
 	await page.getByLabel('Search principles').fill('');
 	await page.locator('summary[aria-label="Appearance settings"]').click();
@@ -175,6 +193,7 @@ try {
 				false,
 				`${mode} AI overview at ${width}px`
 			);
+			await visual.capture(page, `layout-${mode}-${width}`);
 		}
 		await page.setViewportSize({ width: 1440, height: 1100 });
 	}
@@ -184,6 +203,7 @@ try {
 	await page.locator('.principle-row summary').click();
 	await page.locator('.principle-citation .text-button').click();
 	assert.equal(await page.getByRole('combobox', { name: 'File', exact: true }).inputValue(), 'a.ts');
+	await visual.capture(page, 'citation');
 	const waiting = page.waitForEvent('download');
 
 	await page.getByRole('button', { name: 'JSON', exact: true }).click();
@@ -200,10 +220,15 @@ try {
 	const html = await fetch(`${origin}/api/audits/${result.id}/reports/html`);
 
 	assert.match(await html.text(), /LLM sample score/);
+	await visual.capture(page, 'export');
 	assert.deepEqual(failures, []);
+	await visual.complete();
 	process.stdout.write(
 		'LLM browser verification passed: operator pins, GUI model/budget configuration, real structured provider exchange, independent score, sampled coverage, GIF/pause/reduced-motion, principle filters/pagination/citations, six widths in both modes, JSON/HTML evidence, and no browser exceptions.\n'
 	);
+} catch (error) {
+	await failureEvidence(tracedContext, artifacts);
+	throw error;
 } finally {
 	await browser.close();
 	await server.close();

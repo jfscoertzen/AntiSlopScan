@@ -41,7 +41,7 @@ an existing reports directory outside it:
 docker run --rm --network none \
   -v /absolute/path/to/source:/workspace:ro \
   -v /absolute/path/to/reports:/reports \
-  jfscoertzen/antislopscan:1.0.0-alpha.1 \
+  jfscoertzen/antislopscan:1.0.0-alpha.2 \
   cli --source /workspace --output /reports
 ```
 
@@ -70,8 +70,8 @@ glibc-based Linux system and `prlimit`:
 
 ```sh
 mkdir antislopscan && cd antislopscan
-# Extract antislopscan-1.0.0-alpha.1-linux-x64.tar.gz downloaded from Releases.
-tar -xzf /path/to/antislopscan-1.0.0-alpha.1-linux-x64.tar.gz
+# Extract antislopscan-1.0.0-alpha.2-linux-x64.tar.gz downloaded from Releases.
+tar -xzf /path/to/antislopscan-1.0.0-alpha.2-linux-x64.tar.gz
 ./bin/antislopscan cli --profile portable --source /path/to/repository --output /path/to/reports
 ./bin/antislopscan gui --profile portable --source /path/to/repository
 ```
@@ -83,7 +83,7 @@ Use the Docker image or the full local toolchain for native scanners and PDF.
 To install the downloaded npm tarball globally with Node 22.22.3 or later:
 
 ```sh
-npm install --global --ignore-scripts /path/to/antislopscan-1.0.0-alpha.1.tgz
+npm install --global --ignore-scripts /path/to/antislopscan-1.0.0-alpha.2.tgz
 antislopscan cli --profile portable --source /path/to/repository --output /path/to/reports
 ```
 
@@ -99,7 +99,7 @@ Build an installable release from this checkout:
 ```sh
 npm ci
 npm run package
-npm install --global --ignore-scripts ./artifacts/antislopscan-1.0.0-alpha.1.tgz
+npm install --global --ignore-scripts ./artifacts/antislopscan-1.0.0-alpha.2.tgz
 
 antislopscan cli --profile portable --source /path/to/repository --output /path/to/reports
 antislopscan gui --profile portable --source /path/to/repository
@@ -220,8 +220,7 @@ tools/python/bin/pip install -r tools/requirements.lock
 sh scripts/install-native-tools.sh
 node node_modules/playwright/cli.js install --with-deps chromium
 npm run build
-npm test
-npm run test:e2e
+npm run ci:local
 ANTISLOPSCAN_SOURCE_ROOT=/absolute/path/to/repositories \
   ANTISLOPSCAN_DATA_DIRECTORY=/tmp/antislopscan-data npm start
 ```
@@ -237,6 +236,38 @@ For offline web installation, pull the pinned gateway image once with
 `docker compose pull gateway`. Transfer both images with `docker save`/`docker load`
 when installing on an offline host; subsequent audits need neither registries nor
 external services. The one-shot CLI uses only the antislopscan image.
+
+## CI and functional tests
+
+Full CI includes **Snyk Open Source and Snyk Code** in addition to offline SAST,
+secrets scanning and the appliance self-audit. Add GitHub repository secret
+`SNYK_TOKEN` (optionally variable `SNYK_ORG`), or export the token locally before
+running the full pipeline. High/critical findings and unavailable scans block
+release; lower-severity findings remain in the branded HTML/PDF CI reports.
+Use `npm run test:snyk` for a focused scan after installing the pinned native
+CLI with `sh scripts/install-ci-tools.sh`. [Snyk setup, scope and fixes](docs/SNYK.md)
+documents source transmission and the scoped dependency remediation. Ordinary
+appliance audits do not call Snyk and remain offline-capable.
+
+Run the same verification as GitHub, without publishing:
+
+```sh
+npm run ci:docker
+```
+
+The pipeline checks backend and CLI behavior with Jest, offline npm installations,
+the frontend with Playwright, security/SAST, and AntiSlopScan's own architecture
+and slop audit. It also verifies the portable executable. Release publication
+requires every gate and uses the exact tested image. The run produces branded, standalone `ci-report.html` and `ci-report.pdf`, with
+every test assertion, gate outcome and required frontend screenshot. Results,
+coverage, screenshot manifests, failure traces and scanner evidence are retained
+under `artifacts/ci/`, including failed runs. GitHub exposes a dedicated
+`antislopscan-ci-report` artifact and a readable job summary.
+
+With the full local toolchain installed, use `npm run ci:local`.
+Use `npm run test:backend`, `npm run test:cli` or `npm run test:ui` for focused runs.
+See [Testing and delivery gates](docs/TESTING.md) for prerequisites, thresholds,
+the ten testing pillars and failure diagnosis.
 
 ## Configuration and policy
 

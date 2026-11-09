@@ -222,9 +222,9 @@ const lexicalComments = (source: string, extension: string): Range[] => {
 	return ranges;
 };
 
-/** Parse Vue script/template/style comment locations without compiling or executing repository code. */
+/** Parse Vue comment locations in both runtime modes, retaining AST comment spans without compiling or executing repository code. */
 const vueComments = (file: string, source: string): Range[] => {
-	const { descriptor, errors } = parse(source, { filename: file });
+	const { descriptor, errors } = parse(source, { filename: file, templateParseOptions: { comments: true } });
 	const ranges: Range[] = [];
 	const blocks = [
 		descriptor.template,

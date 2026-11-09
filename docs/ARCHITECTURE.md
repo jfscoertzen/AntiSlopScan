@@ -42,22 +42,83 @@ MIT rule sources to `dist/vendor/anti-slop` because Node does not strip types in
 `node_modules`. Sources, license, and provenance remain included. The package
 currently targets Linux x86_64/glibc for its bundled scanner bindings.
 
-The tag-triggered [release workflow](../.github/workflows/release.yml) builds
-the same verified Docker image used by CI. The
-[`create-release.sh`](../scripts/create-release.sh) script extracts its bundled
-npm archive and Node executable into a portable Linux x86_64 distribution;
-the portable profile requires host glibc and `prlimit`. The workflow checks
-the tag against `package.json`, tests the extracted launcher, publishes Docker
-Hub version/alpha tags, and creates a GitHub prerelease with SHA-256 checksums.
-Docker Hub credentials enter only through the `DOCKER_TOKEN` Actions secret.
-The [CI workflow](../.github/workflows/ci.yml) makes the self-audit report
-directory readable to the runner after the non-root container has written it,
-so the artifact uploader can collect the reports. It also extracts the pinned
-Gitleaks binary from the built image and scans fetched Git history with redacted
-output before publishing CI artifacts.
+The [CI workflow](../.github/workflows/ci.yml) and tag-triggered
+[release workflow](../.github/workflows/release.yml) call the same reusable
+[verification workflow](../.github/workflows/verify.yml). Its host entry point,
+[`scripts/ci/docker.mjs`](../scripts/ci/docker.mjs), builds the pinned appliance
+and invokes [`scripts/ci/run.mjs`](../scripts/ci/run.mjs) inside a non-root,
+read-only container. The ordered gates are backend Jest coverage, CLI, offline
+npm distribution, Playwright UI, security, self-audit, then Snyk. Each gate owns its
+log/results and a failed gate prevents later execution. The runner rejects
+skipped tests, missing completion records and failed scanner coverage.
+
+[`scripts/ci/process.mjs`](../scripts/ci/process.mjs) removes operator/provider
+credentials from subprocess environments and bounds stage execution with process
+group cleanup. Tests use temporary repositories, SQLite stores and local provider
+fixtures. [`jest.config.mjs`](../jest.config.mjs) defines four projects;
+[`jest-transform.cjs`](../scripts/jest-transform.cjs) uses the pinned TypeScript
+compiler for ESM test execution. Tests are separately type-checked. The real
+Fastify framework is provided through a native-loader Jest environment to support
+its require(ESM) dependency on Node 22; application code remains instrumented.
+
+[`security.mjs`](../scripts/ci/security.mjs) runs appliance ESLint/Semgrep,
+redacted Gitleaks over fetched Git history and current source files, and the
+npm advisory service. [`audit.mjs`](../scripts/ci/audit.mjs) generates reports in a temporary folder
+outside the audited source tree, then copies them unchanged into CI evidence
+storage and removes temporary output. This preserves application output-path
+confinement when local evidence is stored in the checkout.
+[`self-audit.mjs`](../scripts/ci/self-audit.mjs) applies
+`config/self-audit.json`, requires complete applicable scanner coverage, and
+rejects configured architecture-boundary violations independently of scoring.
+AI is disabled for these gates. Registry access is needed for dependency
+advisories; it is not needed by normal offline repository audits.
+
+[`snyk.mjs`](../scripts/ci/snyk.mjs) independently runs the pinned Snyk dependency
+and Code cloud scans against this trusted checkout, including development
+dependencies. [`snyk-results.mjs`](../scripts/ci/snyk-results.mjs) validates CLI
+exits and JSON/SARIF, retains all reported severities, dependency paths and source
+locations, and blocks on high/critical evidence or unsuccessful execution. Its
+only credentials are `SNYK_TOKEN` and optional organization selection. The host
+wrapper forwards these at container execution time; neither image build nor the
+other test/scanner processes receive them. The gate is separate from the runtime
+scanner catalog and never scans an operator-submitted repository. Snyk requires
+network/service access. [SNYK.md](SNYK.md) documents its scope, installation,
+failure behavior and dependency compatibility constraints.
+
+The runtime path hardening in [`orchestrator.ts`](../src/orchestrator.ts) restricts
+finding snippets to inventoried files and reuses the bounded no-follow
+[`readSource`](../src/security/snapshot.ts) reader. Scanner exceptions become
+fixed safe status/message metadata. [`worker.ts`](../src/worker.ts) accepts only
+its private working directory's `context.json`, with a 64 MiB input cap. These
+changes preserve normal audit/scoring contracts while rejecting unsupported file
+access. The parent-scoped npm resolver override is covered by the native
+[`uri-resolver.mjs`](../tests/uri-resolver.mjs) compatibility scenario and real
+scanner/offline-install tests.
+
+After verification, [`create-release.sh`](../scripts/create-release.sh) extracts
+the image's npm archive and Node executable into a Linux x86_64 distribution.
+[`portable.mjs`](../scripts/ci/portable.mjs) verifies checksums and runs a real
+fixture audit with the extracted executable. Its host requires glibc and `prlimit`.
+The Docker wrapper performs these checks locally without publishing. It writes
+evidence as the invoking user's UID/GID, so artifact collection needs no broad
+permission changes. The test container never receives the Docker socket. Its temporary mount allows
+execution for trusted offline package-install smoke tests; production Compose
+keeps its `noexec` temporary mount.
+
+Only a successful release verification uploads the exact Docker image and
+checksummed archives for the `publish` job. That job has `needs: verify`, validates
+the tag against `package.json`, loads the saved image without rebuilding, then
+publishes Docker Hub version/alpha tags and a GitHub prerelease. Docker Hub
+credentials enter only that job through `DOCKER_TOKEN`; release-write permission
+is absent from verification. See [TESTING.md](TESTING.md) for the ten-pillar test
+matrix, coverage scope, budgets and evidence locations.
 
 [`prepare-package.mjs`](../scripts/prepare-package.mjs) verifies installed versions
 against the authoritative lockfile and copies release provenance into config.
+The `package.json` release allowlist includes public configuration files and
+top-level Markdown documentation. Local agent instructions, operator settings,
+audit outputs and article drafts are excluded; Docker also excludes the drafts
+from its build context. Package installation tests verify these exclusions.
 [`package.mjs`](../tests/package.mjs) installs the actual tarball offline into
 fresh global/local prefixes, executes the npm scanner set, verifies report
 folders, and starts/stops the packaged GUI. No developer installation is reused.
@@ -100,6 +161,181 @@ The orchestrator connects the following responsibilities in order:
 8. The orchestrator removes the source snapshot in `finally`. API jobs persist
    the result; CLI jobs return the configured exit code.
 
+## Delivery verification sequence
+
+The local Docker command and GitHub use the same runner. Evidence belongs to the
+verification run, while publication credentials belong only to the release job.
+An unsuccessful run never supplies artifacts to a publishing job.
+
+```mermaid
+sequenceDiagram
+    actor Developer
+    participant Wrapper as scripts/ci/docker.mjs
+    participant Runner as scripts/ci/run.mjs
+    participant Jest as Jest projects and Playwright
+    participant Security as security.mjs
+    participant Self as self-audit.mjs
+    participant Snyk as snyk.mjs
+    participant Cloud as Snyk hosted analysis
+    participant Store as artifacts/ci
+    participant Publish as release.yml publish
+    Developer->>Wrapper: npm run ci:docker or alpha tag
+    Wrapper->>Wrapper: Build pinned image and preflight
+    Wrapper->>Runner: Non-root container, read-only app and Git history
+    Runner->>Jest: Backend coverage, CLI, distribution, UI in order
+    Jest-->>Runner: Results and bounded diagnostics
+    alt A functional gate fails
+        Runner->>Store: Failed summary; later gates skipped
+        Runner-->>Wrapper: Nonzero exit
+    else Functional gates pass
+        Runner->>Security: SAST, Git-history secrets, dependency advisories
+        Security-->>Runner: Explicit completion or failure
+        Runner->>Self: Only after security passes
+        Self-->>Runner: Quality, coverage and boundary result
+        Runner->>Snyk: Only after self-audit passes; scoped token
+        Snyk->>Cloud: Dependency graph and supported source files
+        Cloud-->>Snyk: Dependency JSON and Code SARIF or service error
+        Snyk-->>Runner: Separate completion/counts; high/critical gate
+        Runner->>Store: Summary, coverage, reports and traces
+        Runner-->>Wrapper: Nonzero unless every gate passed
+        Wrapper->>Wrapper: Assemble and smoke-test executable archive
+        opt Alpha tag and all checks passed
+            Wrapper->>Store: Saved verified image and archives
+            Publish->>Store: Download verified release assets
+            Publish->>Publish: Validate tag, checksums, publish
+        end
+    end
+```
+
+## CI documentation and report evidence
+
+This is development/delivery tooling, separate from the runtime audit API. It
+adds no application routes or scoring categories. Runtime source-access
+hardening is described above; the report's frontend and scoring semantics remain
+unchanged.
+
+[`test-inventory.mjs`](../scripts/ci/test-inventory.mjs) parses registered Jest
+source and delegated browser/package scenarios using TypeScript. It extracts
+contracts and real assertion expressions into the generated portion of
+[TESTING.md](TESTING.md). `check:testing` rejects drift before running tests.
+[`visual-cases.mjs`](../tests/visual-cases.mjs) declares every required screenshot,
+including all tested appearance/viewport combinations. The same registry supplies
+the documentation table and browser evidence requirements.
+
+[`visual-evidence.mjs`](../tests/helpers/visual-evidence.mjs) captures UI states
+after assertions, masks only visible password inputs, and records each PNG's
+SHA-256, actual dimensions, viewport and capture time. It saves partial progress
+on failure and rejects a successful scenario missing any required image.
+[`journal.mjs`](../scripts/ci/journal.mjs) owns a fresh run ID and atomic stage
+transitions. [`local.mjs`](../scripts/ci/local.mjs) records native preflight;
+Docker records provisioning/build, cleanup and archive/executable steps. The
+shared runner records functional/security gates without conflating fixture error
+logs with failed tests.
+
+[`report-data.mjs`](../scripts/ci/report-data.mjs) joins actual Jest outcomes to
+source contracts, verifies current-run manifests, confines regular artifact paths,
+rejects stale/oversized evidence and validates PNG checksums. It never fills a
+missing outcome with a pass. It also verifies the Snyk run ID and recomputes
+normalized issues from fresh raw JSON/SARIF before accepting scan summaries.
+[`report-html.mjs`](../scripts/ci/report-html.mjs)
+escapes all report evidence and reuses the existing mark, topology artwork and
+shared palette through [`ci-report.css`](../assets/ci-report.css).
+[`report.mjs`](../scripts/ci/report.mjs) writes standalone HTML, then renders all
+expanded details to A4 through the existing Playwright/Chromium dependency with
+page JavaScript and networking disabled. Print time is bounded, page numbers are
+included, and an unavailable PDF remains an explicit failure in `report-status.json`.
+
+Managed commands generate reports in their failure/success finalization path.
+The journal's report outcome and overall status remain failed if report generation
+or evidence validation fails. Preflight failures can still produce a failure
+report if renderer dependencies exist; otherwise HTML explains the unavailable
+PDF. Release publication remains a distinct job and is explicitly pending/not
+requested in verification reports. GitHub always retains a dedicated
+`antislopscan-ci-report` artifact and raw evidence, while
+[`job-summary.mjs`](../scripts/ci/job-summary.mjs) links the documents and displays
+actual gate outcomes.
+
+```mermaid
+flowchart LR
+    Reviewer[Developer or build reviewer]
+    CI[Local or GitHub runner]
+    subgraph Verification[Verification and evidence tooling]
+        Document[Read every case and assertion]
+        Capture[Inspect each tested frontend feature]
+        Review[Review branded HTML or PDF]
+        Diagnose[Investigate failure and skipped gates]
+        Scan[Verify dependencies and source with Snyk]
+    end
+    Reviewer --> Document
+    Reviewer --> Capture
+    Reviewer --> Review
+    Reviewer --> Diagnose
+    CI --> Capture
+    CI --> Review
+    CI --> Scan
+    Reviewer --> Scan
+```
+
+The use cases are implemented by the source inventory, browser checkpoint helper
+and filesystem report entry points above. These are not new web application APIs.
+
+```mermaid
+flowchart LR
+    Source[Test source and contracts] --> Inventory[test-inventory.mjs]
+    Registry[visual-cases.mjs] --> Inventory
+    Inventory --> Docs[TESTING.md]
+    Registry --> Browser[Playwright checkpoints]
+    Browser --> PNG[PNG files and SHA-256 manifests]
+    Gates[Preflight and test gates] --> Journal[pipeline.json and Jest JSON]
+    Scanner[Scanner and advisory output] --> Collector[report-data.mjs]
+    Checkout[Trusted checkout and lockfile] --> Snyk[snyk.mjs]
+    Snyk -->|Dependency graph and source| Cloud[Snyk hosted service]
+    Cloud -->|Results or service failure| Snyk
+    Snyk --> Raw[Snyk JSON/SARIF and scan summary]
+    Raw --> Collector
+    Journal --> Collector
+    PNG --> Collector
+    Source --> Collector
+    Collector --> HTML[report-html.mjs]
+    Brand[Shared palette and original artwork] --> HTML
+    HTML --> Document[Standalone ci-report.html]
+    HTML --> Print[Playwright print with no network or page scripts]
+    Print --> PDF[ci-report.pdf]
+    Document --> Artifact[GitHub artifacts and local folder]
+    PDF --> Artifact
+```
+
+The run owns its journal and captured fixture evidence. Report collection reads
+only bounded files under that run's evidence root. Source inventories describe
+intended checks; only Jest outcomes establish which cases actually passed.
+
+```mermaid
+sequenceDiagram
+    actor Developer
+    participant Host as local.mjs or docker.mjs
+    participant Journal as journal.mjs
+    participant Tests as Jest and Playwright
+    participant Evidence as visual-evidence.mjs
+    participant Report as report.mjs
+    Developer->>Host: Run local verification
+    Host->>Journal: Start fresh run and declare every gate
+    Journal-->>Host: Run ID
+    Host->>Tests: Preflight and ordered test projects
+    Tests->>Evidence: Assert feature, then capture PNG
+    Evidence-->>Tests: Persisted PNG and run manifest
+    Tests-->>Host: Actual Jest outcomes and scanner artifacts
+    alt A gate fails
+        Host->>Journal: Failed gate and unexecuted gates skipped
+    else All gates pass
+        Host->>Journal: Measured passing outcomes
+    end
+    Host->>Report: Finalize evidence on either path
+    Report->>Report: Validate paths, freshness, hashes and outcomes
+    Report->>Report: Write HTML and render expanded PDF
+    Report->>Journal: Record report availability and final outcome
+    Report-->>Developer: Viewable documents and full-resolution evidence
+```
+
 ## Comment exclusion and source views
 
 [`security/code-snapshot.ts`](../src/security/code-snapshot.ts) derives a second,
@@ -111,7 +347,8 @@ configured repository limit. Failure to construct the view fails the audit rathe
 than silently scanning unfiltered text.
 
 [`analysis/comments.ts`](../src/analysis/comments.ts) uses TypeScript compiler
-locations for JS/TS/JSX, Vue script/template parsing, and lexical comment spans for
+locations for JS/TS/JSX, Vue script/template parsing with explicit AST comment retention in production
+and development, and lexical comment spans for
 other supported languages. Comments become spaces, retaining UTF-16 columns and
 newlines. Quoted/raw strings, regex literals and template text remain code data.
 Non-JS/TS lexical handling is not a complete semantic parser. Native language
@@ -277,7 +514,7 @@ flowchart LR
     pipeline --> export
     operator --> configure
     maintainer[Release maintainer] --> release([Publish tagged alpha release])
-    release --> export
+    release --> verification([Pass ordered functional and security gates])
     operator --> compare
     audit --> evidence
     evidence --> export
@@ -313,7 +550,11 @@ flowchart LR
     artwork[(Bundled illustrative PNGs)] --> reports
     result --> sqlite[(SQLite history)]
     reports --> files[(HTML PDF JSON SARIF)]
-    tag[Alpha release tag] --> release[GitHub Actions release workflow]
+    tag[Alpha release tag] --> verification[verify.yml and scripts/ci/docker.mjs]
+    verification --> gates[scripts/ci/run.mjs ordered gates]
+    gates --> evidenceStore[(Jest coverage traces and audit artifacts)]
+    gates -->|All passed| verified[(Verified image and tested archives)]
+    verified --> release[release.yml publish job]
     release --> image[(Docker Hub image)]
     release --> archive[(Executable and npm archives)]
     sqlite --> api[Fastify review API]

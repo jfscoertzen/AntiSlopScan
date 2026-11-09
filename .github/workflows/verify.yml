@@ -1,0 +1,76 @@
+# @author Stephan Coertzen (coertzen.jfs@gmail.com)
+# @license Apache-2.0
+# antislopscan is open-source software. See LICENSE.TXT for license information.
+name: Verify appliance
+on:
+  workflow_call:
+    secrets:
+      SNYK_TOKEN:
+        required: false
+    inputs:
+      release:
+        type: boolean
+        default: false
+permissions:
+  contents: read
+defaults:
+  run:
+    shell: bash
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.22.3'
+      - name: Build, backend, CLI, Playwright, SAST, self-audit and Snyk
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          SNYK_ORG: ${{ vars.SNYK_ORG }}
+        run: npm run ci:docker
+      - name: Save the exact verified image for publication
+        if: inputs.release
+        run: docker save antislopscan:ci | gzip > artifacts/ci/verified-image.tar.gz
+      - name: Retain viewable CI reports
+        id: ci-report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: antislopscan-ci-report
+          path: |
+            artifacts/ci/ci-report.html
+            artifacts/ci/ci-report.pdf
+            artifacts/ci/report-status.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Publish readable job summary
+        if: always()
+        env:
+          CI_REPORT_ARTIFACT_URL: ${{ steps.ci-report.outputs.artifact-url }}
+        run: node scripts/ci/job-summary.mjs
+      - name: Retain test results, coverage, traces and audit reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-evidence
+          path: |
+            artifacts/ci/
+            !artifacts/ci/verified-image.tar.gz
+            !artifacts/ci/release/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Retain verified release assets
+        if: inputs.release
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-release
+          path: |
+            artifacts/ci/verified-image.tar.gz
+            artifacts/ci/release/
+          if-no-files-found: error
+          retention-days: 3

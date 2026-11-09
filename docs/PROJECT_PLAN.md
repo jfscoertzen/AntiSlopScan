@@ -18,6 +18,116 @@ quality, architecture, systems-thinking, and security assessments.
 
 ## Roadmap and current progress
 
+### Alpha 2 release
+
+In progress: publish `v1.0.0-alpha.2` with the verified Jest/Playwright gates,
+Snyk remediation and branded CI evidence. Keep local agent instructions,
+credentials, generated audit artifacts and article drafts out of the committed
+release and distributions. Update install examples, validate the versioned
+package/container and publish through the tag-triggered GitHub workflow. Confirm
+the hosted verification, prerelease assets and Docker tags before marking this
+release complete.
+
+### Snyk dependency and source security gate
+
+Completed and verified on 2026-11-09: added pinned Snyk CLI 1.1308.4 dependency
+and Code cloud scans as the final application gate before release assembly.
+Credentials enter only execution, with sanitized test/build/report subprocess
+environments. Both scans retain actual outcomes and all severity counts; missing
+credentials, failed scans and high/critical findings block release. Branded
+HTML/PDF reports verify raw current-run evidence and present findings, fix
+versions, dependency paths and source/data-flow locations.
+
+Live Code findings fell from three to zero after source/worker path hardening
+and safe scanner-error classification, supported by failing-before/passing-after
+regressions. Patched Vite/esbuild and an ESLint/Ajv-scoped maintained URI resolver
+remove the observed critical/high dependency findings. No broad ignores were
+added. Four medium advisory/package/version combinations remain visible.
+Native npm 12 and container npm 10 both pass real offline package/GUI tests.
+
+The final native and Docker pipelines each pass **64 Jest cases** (56 backend,
+five CLI, one distribution, two UI), **194 required screenshots**, security,
+self-audit and both Snyk scans. Docker also passes checksummed archive and
+portable executable verification. Coverage is 100% lines/statements/functions
+and 84.53% branches in the five measured modules; self-audit remains 93/100 with
+100% applicable tool coverage. Reports were generated and print layout reviewed.
+See [SNYK.md](SNYK.md) and [VALIDATION.md](VALIDATION.md) for scope, compatibility
+constraints, remaining advisories and exact evidence. GitHub needs its own
+`SNYK_TOKEN` repository secret; this task did not configure remote secrets, push
+changes, run GitHub Actions or publish a release.
+
+### Source-backed test documentation and branded CI evidence
+
+Completed and verified on 2026-11-09: the source-generated
+[testing inventory](TESTING.md) documents every registered case's contract and
+actual assertions, including delegated browser and installation scenarios.
+Preflight rejects stale documentation. Both Playwright scenarios require all
+declared feature and appearance/viewport screenshots; reports independently check
+run IDs, paths, timestamps, PNG dimensions and SHA-256 digests.
+
+The complete Docker pipeline passed **54 Jest cases** (46 backend, five CLI, one
+distribution and two UI), with no failures or skips, and retained **194 required
+screenshots** (170 dashboard and 24 model review). Branded standalone HTML and
+A4 PDF reports contain actual gate/test/scanner outcomes, coverage, assertion
+details, captioned screenshots and sanitized diagnostic excerpts. Failure-path
+regressions verify readable reports after an actual command failure, artifact
+confinement, hostile HTML escaping and rejection of incomplete visual evidence.
+Missing evidence or failed report generation blocks CI. GitHub always retains
+the viewable report artifact and links it from the job summary.
+
+The final PDF was rendered with Poppler and its cover, continued pipeline table,
+feature evidence and responsive contact sheets visually inspected. The small
+print-layout adjustment keeps durations on one line. Runtime APIs, scoring and
+local article drafts are preserved; an obsolete organization name was removed
+from the application footer. Release publication remains explicitly separate
+from verification; no push or publication was performed. Remaining scope limits
+and reproducible validation are recorded in [VALIDATION.md](VALIDATION.md).
+
+### Ordered functional CI and Jest migration
+
+Implemented: migrated regression tests to Jest 30.5.2; added backend/API edge
+cases, CLI failure exit codes, fail-closed pipeline tests and bounded performance
+checks. Existing Playwright scenarios now run as Jest UI tests with per-scenario
+logs, failure screenshots/traces and explicit completion checks. Added strict
+test type checking and critical-module coverage gates. The shared npm runner
+orders backend, CLI, distribution, UI, security and self-audit. The Docker wrapper
+also verifies the portable executable. GitHub CI and release call one reusable
+workflow; publication requires its success and consumes the saved verified image.
+The [testing guide](TESTING.md) maps the ten pillars to actual tests and documents
+commands, evidence, budgets and coverage limits. Direct production dependency versions
+are unchanged; npm moved the existing PDF tslib helper into a nested location
+when adding Jest optional dependencies. Local launch article drafts remain local.
+
+Completed and verified on 2026-11-09 after execution/network access was restored:
+`npm run ci:local` and the complete Docker pipeline pass. Docker ran 47 Jest
+cases (39 backend, five CLI, one offline distribution and two Playwright flows),
+with no failed or skipped cases. Critical-module coverage is 100% lines,
+statements and functions, and 84.61% branches. SAST, full Git-history/working-tree
+secret scans and dependency checks including development dependencies pass at
+the configured high/critical threshold. Lower-severity dependency advisories
+remain visible. Self-audit is 93/100 with 100% applicable scanner coverage and
+no configured boundary violations; every requested report completed. The portable
+executable audit and archive checksums also pass.
+
+Verification exposed and fixed production Vue parsing that discarded template
+comment spans, reproduced by a failing fresh-process regression before the fix.
+Vite was updated from 5.4.21 to patched 6.4.5 using the existing Vue plugin.
+The CI-only temporary mount now permits launching trusted installed CLI/scanner
+binaries; production Compose is unchanged. Dependency auditing explicitly
+includes dev dependencies despite the container's production environment.
+Earlier restricted runs were failures, not passing evidence. Final records and
+commands are in [VALIDATION.md](VALIDATION.md) and [TESTING.md](TESTING.md).
+No publication was performed during this verification task.
+
+### Local launch articles
+
+Completed: prepared concise dev.to and LinkedIn article drafts under
+`docs/articles/antislopscan-launch/`, with the requested inspiration talks,
+additional primary-source research, a source/claim ledger and a matching Imagegen
+banner. The drafts introduce the alpha and distinguish structural indicators from
+runtime proof. Publishing notes and the exact image prompt accompany the files.
+This is a local editorial package; no article or repository changes were pushed.
+
 ### Public alpha release
 
 Completed: published the initial Apache-2.0 source repository and the

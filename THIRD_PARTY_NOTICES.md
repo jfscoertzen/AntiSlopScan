@@ -17,6 +17,7 @@ retain their original licenses; this project does not relicense them.
 | jscpd | 5.4.2 | MIT; Node launcher and platform binary packages retain their licenses. Semantic models are not downloaded or used. |
 | Semgrep Community Edition | 1.183.0 | LGPL-2.1; invoked as an independent process with original antislopscan rules. Wheel notices retained; matching source archive in `tools/sources/semgrep-v1.183.0.tar.gz` and license in `tools/notices/SEMGREP-LICENSE` are included by installer. No proprietary engine or licensed registry rules are installed. |
 | Gitleaks | 8.30.1 | MIT; original license extracted to `tools/notices/GITLEAKS-LICENSE`; source reference in research documentation. |
+| Snyk CLI | 1.1308.4, SHA-256 in `config/snyk-ci.json` | Apache-2.0 CLI; original upstream license retained in `tools/notices/SNYK-LICENSE` by `scripts/install-ci-tools.sh`. Independent CI subprocess only; Snyk's hosted dependency/Code analysis requires an account, token and service access. It is not an offline appliance scanner. |
 | Ruff | 0.17.3 | MIT; Python wheel license metadata retained. |
 | Radon | 6.0.1 | MIT; Python package license metadata retained. |
 | Fastify | 5.12.8 | MIT; package notices retained. |
@@ -25,7 +26,9 @@ retain their original licenses; this project does not relicense them.
 | minimatch | 10.2.6 | ISC; package notice retained. |
 | Playwright | 1.56.0 | Apache-2.0; package license/NOTICE retained. Chromium revision 1194 includes its own bundled third-party credits. |
 | pdf-lib | 1.17.1 | MIT; package license and transitive standard-font/pako notices remain in `node_modules/`. Used only to merge appliance-generated PDF sections and add global page numbers; arbitrary uploaded PDFs are not accepted. |
-| Vitest / Vite / Vue Vite plugin | 2.1.9 / 5.4.21 / 5.2.4 | MIT; development/build package notices retained in this source-built image. |
+| Jest / @jest/globals / jest-environment-node | 30.5.2 | MIT; development-only test framework and Node environment; original package notices retained. |
+| Vite / Vue Vite plugin | 7.3.7 / 6.0.10 | MIT; development/build package notices retained in this source-built image. |
+| fast-uri | 3.1.9 under Ajv 6; other locked versions remain with their parents | BSD-3-Clause; original npm licenses retained. A scoped npm override replaces Ajv 6.15.0's abandoned `uri-js` dependency with the maintained resolver. Compatibility and Unicode termination are regression-tested; no upstream package files or notices are rewritten. See `docs/SNYK.md`. |
 | vue-tsc / Vue language tools | 3.3.14 | MIT; development-only Vue SFC type checker. Installed through the locked dev dependency tree; original notices retained. Not part of the browser runtime or bundled production npm dependencies. |
 | Node.js | 22.22.3 | Node distribution and dependency licenses are retained by the base image. |
 | Unprivileged Nginx gateway | Nginx 1.30.6, stable-alpine image digest pinned in Compose | Container packaging is Apache-2.0; Nginx uses its upstream BSD-style license. Original notices remain in the independently distributed gateway image. The gateway has no source/history mounts. |

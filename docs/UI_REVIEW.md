@@ -1,5 +1,38 @@
 # UI delivery gate
 
+## Snyk CI report extension
+
+Reading: technical CI evidence for developers/reviewers, extending the existing
+publication direction at ENERGY 2 / RHYTHM 2 / MOTION 0. The application shell,
+palette, mark and topology artwork are reused. Both complete verification runs
+reexercised the unchanged workbench through 64 passing cases and 194 required
+screenshots.
+
+- Evidence PASS (R-17/R-36/R-38): real Snyk version, exits, timings, severity
+  counts, dependency paths and fix information are shown. Code reports zero
+  findings; four medium dependency combinations remain visible. Raw scan
+  comparison and hostile-HTML tests pass; missing measurements remain explicit.
+- Purpose/identity PASS (R-01/R-04/R-06/R-07/R-09/R-14/R-22): the existing
+  branded cover identifies the run; compact tables compare the two actual scans,
+  and native disclosures hold dependency evidence. Existing typography, source
+  monospace and status colors serve the same publication hierarchy.
+- Navigation/keyboard PASS (R-24/R-26/R-32/R-39): a real offline browser review
+  focused the first Snyk disclosure, opened/closed it with Enter and verified its
+  exact Snyk advisory URL. The review PNG is `artifacts/ci/snyk-report-review.png`.
+- Safety/accessibility PASS (R-25/R-34/R-40): established light report tokens,
+  visible native focus, headings and explicit statuses are retained. HTML/PDF
+  use embedded assets, escaped text and the existing restricted CSP; PDF page
+  JavaScript and network access are disabled. The application theme/contrast
+  matrix remains covered by both successful Playwright scenarios.
+- Print/craft PASS (R-03/R-35/C-1/C-3/C-4): the final A4 report cover, pipeline,
+  Snyk counts/remediation, scanner table, feature capture, responsive contact
+  sheet and final diagnostics were rendered and visually inspected. Print
+  severity labels, headers and numeric durations stay readable without overlap.
+- Scope PASS (R-02/R-18/R-23/R-27/R-28/R-37): this is an existing report
+  extension with established direction, ordinary interface copy, genuine empty
+  and unavailable states, and existing authorized branding. It introduces no
+  promotional statistics, testimonials, FAQ, navigation or animation.
+
 ## Publication reports
 
 The report design read preceded implementation in `DESIGN.md`: technical audit

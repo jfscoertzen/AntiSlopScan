@@ -7,7 +7,7 @@ release and does not publish it to an npm account.
 ## Install a tarball or published release
 
 ```sh
-npm install --global --ignore-scripts ./antislopscan-1.0.0-alpha.1.tgz
+npm install --global --ignore-scripts ./antislopscan-1.0.0-alpha.2.tgz
 antislopscan --help
 antislopscan cli --profile portable --source /path/to/source --output /path/to/reports
 antislopscan gui --profile portable --source /path/to/source --port 3000
@@ -26,6 +26,11 @@ so `/usr/bin/prlimit` exists. The CLI remains usable from a local dependency
 through `npm exec -- antislopscan`; both global and local installs are tested.
 The GUI uses the same package's compiled Vue assets, defaults to localhost:3000,
 and stores history outside the audited source in the user's state directory.
+
+Release packages include only the declared public configuration files and
+top-level documentation. Local `config/local.json`, `.env`, `AGENTS.md`, generated
+audit data and the local article drafts under `docs/articles/` are excluded.
+Offline installation tests check the installed package for these private paths.
 
 The portable profile explicitly disables Rust AntiSlop, Semgrep, Gitleaks, Ruff,
 and Radon and selects HTML/JSON/SARIF. It reports those tools as skipped; it never
@@ -100,7 +105,7 @@ Publish only the verified tarball from an npm account authorized to own the name
 
 ```sh
 npm login --registry=https://registry.npmjs.org
-npm publish ./artifacts/antislopscan-1.0.0-alpha.1.tgz --access public --registry=https://registry.npmjs.org
+npm publish ./artifacts/antislopscan-1.0.0-alpha.2.tgz --access public --registry=https://registry.npmjs.org
 ```
 
 Use the current `package.json` version when preparing later releases. npm may

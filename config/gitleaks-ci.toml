@@ -1,0 +1,18 @@
+# @author Stephan Coertzen (coertzen.jfs@gmail.com)
+# @license Apache-2.0
+# antislopscan is open-source software. See LICENSE.TXT for license information.
+title = "AntiSlopScan working-tree CI secret scan"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Generated dependencies, private operator configuration and CI evidence are not release source"
+paths = [
+  '''(^|/)(node_modules|\.git|\.npm-cache|\.codex|\.agents|\.aws|dist|artifacts)(/|$)''',
+  '''^(data|reports)(/|$)''',
+  '''(^|/)tools/(python|bin|sources|notices)(/|$)''',
+  '''(^|/)AGENTS\.md$''',
+  '''(^|/)\.env$''',
+  '''(^|/)config/local\.json$'''
+]

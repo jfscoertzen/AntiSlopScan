@@ -3,7 +3,7 @@
  * @license Apache-2.0
  * antislopscan is open-source software. See LICENSE.TXT for license information.
  */
-import { expect, test } from 'vitest';
+import { expect, test } from '@jest/globals';
 import { chmod, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -12,6 +12,8 @@ import { createSnapshot } from '../src/security/snapshot.js';
 import { runProcess } from '../src/security/process.js';
 import { fromSarif } from '../src/scanners/normalize.js';
 import { deduplicate, makeFinding } from '../src/findings.js';
+import { applyFindingPolicy } from '../src/orchestrator.js';
+import type { AuditContext, ScannerResult } from '../src/domain.js';
 
 /** Verify snapshots skip symlinks, private metadata, caches, and executable configuration while preserving bounded source. */
 const snapshotContract = async (): Promise<void> => {
@@ -103,6 +105,65 @@ test('source inventory limits fail visibly', snapshotLimits);
 test('subprocess timeout and output caps are enforced', processLimits);
 test('malformed scanner output is rejected', outputContract);
 test('deduplication preserves strongest assessment and provenance', deduplicationContract);
+
+
+/** Scanner evidence may read only inventoried regular snapshot files; traversal, unlisted files and symlinks must fail before snippets are exposed. */
+const findingEvidenceBoundary = async (): Promise<void> => {
+	const directory = await mkdtemp(join(tmpdir(), 'antislopscan-finding-paths-'));
+	const snapshot = join(directory, 'snapshot');
+	const context: AuditContext = { snapshot, workDirectory: directory, config: parseConfig({ reports: { includeSourceSnippets: true } }), inventory: { files: [{ path: 'code.ts', language: 'typescript', bytes: 25, lines: 1, hash: '' }], languages: ['typescript'], totalBytes: 25, totalLines: 1, visitedEntries: 1, excludedFiles: 0, skippedSymlinks: 0, binaryFiles: 0, documents: [], dependencies: [] } };
+	/** Produce isolated findings because policy processing consumes each scanner's finding array. */
+	const scanner = (file: string): ScannerResult => ({ id: 'systems', name: 'Systems', version: 'fixture', status: 'completed', durationMs: 0, analyzedFiles: 1, findings: [makeFinding({ file, ruleId: 'fixture/path', category: 'codeQuality', severity: 'minor', message: 'Fixture evidence', evidence: 'Fixture only', recommendation: 'Review the fixture.' })] });
+
+	try {
+		await mkdir(snapshot);
+		await writeFile(join(snapshot, 'code.ts'), 'export const answer = 42;');
+		await writeFile(join(directory, 'outside.ts'), 'private fixture content');
+		await writeFile(join(snapshot, 'unlisted.ts'), 'unlisted fixture content');
+		expect((await applyFindingPolicy([scanner('code.ts')], context))[0].snippet).toContain('answer = 42');
+		await expect(applyFindingPolicy([scanner('../outside.ts')], context)).rejects.toThrow();
+		await expect(applyFindingPolicy([scanner('unlisted.ts')], context)).rejects.toThrow('inventory');
+		await rm(join(snapshot, 'code.ts'));
+		await symlink(join(directory, 'outside.ts'), join(snapshot, 'code.ts'));
+		await expect(applyFindingPolicy([scanner('code.ts')], context)).rejects.toThrow();
+	} finally {
+		await rm(directory, { recursive: true, force: true });
+	}
+};
+
+
+/** The internal worker must reject arbitrary context paths and symlinked context data, while accepting its own bounded context file. */
+const workerContextBoundary = async (): Promise<void> => {
+	const directory = await mkdtemp(join(tmpdir(), 'antislopscan-worker-paths-'));
+	const work = join(directory, 'work');
+	const options = { timeoutMs: 10000, maxOutputBytes: 65536, memoryMb: 256 };
+	const context = { snapshot: work, workDirectory: work, config: parseConfig({}), inventory: { files: [], languages: [], documents: [], dependencies: [] } };
+
+	try {
+		await mkdir(work);
+		await writeFile(join(directory, 'outside.json'), JSON.stringify(context));
+		const escaped = await runProcess('worker', ['systems', join(directory, 'outside.json')], work, options);
+
+		expect(escaped.exitCode).toBe(2);
+		expect(escaped.stdout).toBe('');
+		await symlink(join(directory, 'outside.json'), join(work, 'context.json'));
+		const linked = await runProcess('worker', ['systems', join(work, 'context.json')], work, options);
+
+		expect(linked.exitCode).toBe(2);
+		expect(linked.stdout).toBe('');
+		await rm(join(work, 'context.json'));
+		await writeFile(join(work, 'context.json'), JSON.stringify(context));
+		const valid = await runProcess('worker', ['systems', join(work, 'context.json')], work, options);
+
+		expect(valid.exitCode).toBe(0);
+		expect(JSON.parse(valid.stdout).analyzedFiles).toBe(0);
+	} finally {
+		await rm(directory, { recursive: true, force: true });
+	}
+};
+
+test('finding snippets reject traversal, unlisted files and symlink escape', findingEvidenceBoundary);
+test('worker context is restricted to its own regular context file', workerContextBoundary);
 
 
 /** Ignore only an absent cleanup target; preserve unexpected permission or I/O failures. */

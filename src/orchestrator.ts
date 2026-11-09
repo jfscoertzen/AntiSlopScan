@@ -8,7 +8,7 @@ import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createHash, randomUUID } from 'node:crypto';
 import { configurationHash } from './config.js';
-import { createSnapshot, matchesAny } from './security/snapshot.js';
+import { createSnapshot, matchesAny, readSource } from './security/snapshot.js';
 import { createCodeSnapshot } from './security/code-snapshot.js';
 import { isInside } from './security/paths.js';
 import { applicationRoot, ProcessFailure, type ProcessOptions } from './security/process.js';
@@ -129,9 +129,9 @@ const executeScanners = async (context: AuditContext, contextPath: string, signa
 					if (result.aiArchitecture) { aiArchitecture = result.aiArchitecture; delete result.aiArchitecture; }
 				}
 			} catch (error) {
-				result.status = error instanceof ProcessFailure ? error.status : signal.aborted ? 'timed_out' : 'failed';
+				result.status = signal.aborted || error instanceof ProcessFailure && error.status === 'timed_out' ? 'timed_out' : 'failed';
 				result.findings = [];
-				result.message = error instanceof SyntaxError ? 'Scanner returned malformed JSON' : error instanceof Error ? redact(error.message).slice(0, 500) : 'Scanner execution failed';
+				result.message = result.status === 'timed_out' ? 'Scanner or audit deadline exceeded' : error instanceof SyntaxError ? 'Scanner returned malformed JSON' : 'Scanner execution failed; verify its pinned installation, resource limits and appliance configuration';
 				log('warn', 'scanner_failed', { scanner: id, status: result.status });
 			}
 
@@ -152,18 +152,25 @@ const executeScanners = async (context: AuditContext, contextPath: string, signa
 };
 
 
-/** Apply operator rule/category policy and attach bounded, redacted snippets only when requested. */
-const applyFindingPolicy = async (scanners: ScannerResult[], context: AuditContext): Promise<Finding[]> => {
+/** Apply operator rule/category policy and consume completed findings; reject unlisted paths or unsafe snippet reads, attaching bounded redacted source only when requested. */
+export const applyFindingPolicy = async (scanners: ScannerResult[], context: AuditContext): Promise<Finding[]> => {
 	const findings: Finding[] = [];
 	const sourceLines = new Map<string, string[]>();
+	const inventoryPaths = new Set(context.inventory.files.map(/** Restrict evidence to the original source inventory. */ (file) => file.path));
 
 	for (const scanner of scanners) {
 		if (scanner.status !== 'completed') continue;
 		for (const finding of scanner.findings) {
 			if (!categoryEnabled(finding.category, context.config) || matchesAny(finding.ruleId, context.config.rules.exclude)) continue;
+			if (!inventoryPaths.has(finding.file)) throw new Error('Scanner finding references a file outside the source inventory');
 			finding.severity = context.config.rules.severity[finding.ruleId] ?? context.config.scanners[scanner.id]?.severity ?? finding.severity;
 			if (context.config.reports.includeSourceSnippets && finding.category !== 'security') {
-				if (!sourceLines.has(finding.file)) sourceLines.set(finding.file, (await readFile(join(context.snapshot, finding.file), 'utf8')).split('\n'));
+				if (!sourceLines.has(finding.file)) {
+					const content = await readSource(context.snapshot, finding.file, context.config.audit.maxFileBytes);
+
+					if (content === null) throw new Error('Scanner evidence references non-text source');
+					sourceLines.set(finding.file, content.split('\n'));
+				}
 				finding.snippet = redact(sourceLines.get(finding.file)!.slice(Math.max(0, finding.line - 2), finding.line + 1).join('\n')).slice(0, 1200);
 			}
 			findings.push(finding);

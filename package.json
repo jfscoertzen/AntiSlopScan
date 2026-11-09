@@ -1,6 +1,6 @@
 {
   "name": "antislopscan",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0-alpha.2",
   "description": "Offline repository audits with explicit evidence and coverage",
   "type": "module",
   "license": "Apache-2.0",
@@ -41,7 +41,15 @@
     "src/",
     "ui/",
     "assets/",
-    "config/",
+    "config/container-default.json",
+    "config/example.json",
+    "config/self-audit.json",
+    "config/semgrep.json",
+    "config/snyk-ci.json",
+    "config/gitleaks.toml",
+    "config/gitleaks-ci.toml",
+    "config/nginx.conf",
+    "config/npm-dependencies.lock.json",
     "schemas/",
     "tools/vendor/",
     "tools/requirements.lock",
@@ -49,7 +57,7 @@
     "tsconfig.json",
     "tsconfig.ui.json",
     "vite.config.ts",
-    "docs/",
+    "docs/*.md",
     "LICENSE.TXT",
     "NOTICE",
     "THIRD_PARTY_NOTICES.md",
@@ -62,17 +70,32 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && npm run check:ui && node scripts/build-vendor.mjs && vite build && node scripts/export-schemas.mjs",
     "check:ui": "vue-tsc --noEmit -p tsconfig.ui.json",
-    "test": "vitest run",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --selectProjects backend cli",
     "start": "node --env-file-if-exists=.env dist/cli.js gui",
     "cli": "node --env-file-if-exists=.env dist/cli.js cli",
     "gui": "node --env-file-if-exists=.env dist/cli.js gui",
     "audit": "node --env-file-if-exists=.env dist/cli.js audit",
-    "test:e2e": "node tests/browser.mjs && node tests/browser-ai.mjs",
-    "package": "npm run build && node scripts/prepare-package.mjs && npm pack --ignore-scripts --loglevel=error --pack-destination artifacts",
+    "test:e2e": "npm run test:ui",
+    "package": "npm run build && npm run package:built",
     "prepack": "npm run build && node scripts/prepare-package.mjs",
-    "test:package": "node tests/package.mjs",
+    "test:package": "npm run test:distribution",
     "check:docs": "node scripts/check-documentation.mjs",
-    "self-audit": "node dist/cli.js cli --source . --config config/self-audit.json --output /tmp/antislopscan-self-audit"
+    "self-audit": "node dist/cli.js cli --source . --config config/self-audit.json --output /tmp/antislopscan-self-audit",
+    "test:backend": "node --experimental-vm-modules node_modules/jest/bin/jest.js --selectProjects backend",
+    "test:cli": "node --experimental-vm-modules node_modules/jest/bin/jest.js --selectProjects cli",
+    "test:ui": "node --experimental-vm-modules node_modules/jest/bin/jest.js --selectProjects ui",
+    "test:distribution": "node --experimental-vm-modules node_modules/jest/bin/jest.js --selectProjects distribution",
+    "check:tests": "tsc --noEmit -p tsconfig.tests.json",
+    "package:built": "node scripts/prepare-package.mjs && npm pack --ignore-scripts --loglevel=error --pack-destination artifacts",
+    "ci:verify": "node scripts/ci/run.mjs",
+    "ci:local": "node scripts/ci/local.mjs",
+    "ci:docker": "node scripts/ci/docker.mjs",
+    "test:sast": "node scripts/ci/security.mjs",
+    "test:slop": "node scripts/ci/self-audit.mjs",
+    "test:snyk": "node scripts/ci/snyk.mjs",
+    "ci:report": "node scripts/ci/report.mjs",
+    "check:testing": "node scripts/ci/test-inventory.mjs",
+    "docs:tests": "node scripts/ci/test-inventory.mjs --write"
   },
   "dependencies": {
     "@oxlint/plugins": "1.78.0",
@@ -91,10 +114,19 @@
     "vue": "3.5.45"
   },
   "devDependencies": {
+    "@jest/globals": "30.5.2",
     "@types/node": "22.20.1",
-    "@vitejs/plugin-vue": "5.2.4",
-    "vite": "5.4.21",
-    "vitest": "2.1.9",
+    "@vitejs/plugin-vue": "6.0.10",
+    "jest": "30.5.2",
+    "jest-environment-node": "30.5.2",
+    "vite": "7.3.7",
     "vue-tsc": "3.3.14"
+  },
+  "overrides": {
+    "eslint": {
+      "ajv": {
+        "uri-js": "npm:fast-uri@3.1.9"
+      }
+    }
   }
 }

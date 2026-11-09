@@ -6,7 +6,7 @@ AntiSlopScan is an open-source, self-hosted appliance for auditing code quality,
 
 The appliance scans repositories as data: it does not install their dependencies or run their scripts. Scanner failures and missing coverage are reported separately from findings. Core analysis works offline after the image is installed. Optional LLM-assisted architecture review is disabled by default and requires explicit source-transmission consent.
 
-**Alpha release:** this image currently targets Linux x86_64 (`linux/amd64`). Use `1.0.0-alpha.1` for a specific release or `alpha` for the current alpha image.
+**Alpha release:** this image currently targets Linux x86_64 (`linux/amd64`). Use `1.0.0-alpha.2` for a specific release or `alpha` for the current alpha image.
 
 ## One-shot audit
 
@@ -16,7 +16,7 @@ Create a writable reports directory outside the repository, then use absolute pa
 docker run --rm --network none \
   -v /absolute/path/to/source:/workspace:ro \
   -v /absolute/path/to/reports:/reports \
-  jfscoertzen/antislopscan:1.0.0-alpha.1 \
+  jfscoertzen/antislopscan:1.0.0-alpha.2 \
   cli --source /workspace --output /reports
 ```
 
@@ -29,7 +29,7 @@ docker run --rm --network none \
   -v /absolute/path/to/source:/workspace:ro \
   -v /absolute/path/to/reports:/reports \
   -v /absolute/path/to/config.json:/config/config.json:ro \
-  jfscoertzen/antislopscan:1.0.0-alpha.1 \
+  jfscoertzen/antislopscan:1.0.0-alpha.2 \
   cli --source /workspace --output /reports --config /config/config.json
 ```
 

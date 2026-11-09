@@ -3,7 +3,9 @@
  * @license Apache-2.0
  * antislopscan is open-source software. See LICENSE.TXT for license information.
  */
-import { expect, test } from 'vitest';
+import { expect, test } from '@jest/globals';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { mkdir, mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -144,12 +146,31 @@ const literalContract = (): void => {
 	for (const [file, source, literals] of fixtures) {
 		const code = withoutComments(file, source);
 
-		expect(code, file).not.toContain('REMOVE');
-		expect(code.length, file).toBe(source.length);
-		expect(code.split('\n').length, file).toBe(source.split('\n').length);
-		for (const literal of literals) expect(code, file).toContain(literal);
+		expect(code).not.toContain('REMOVE');
+		expect(code.length).toBe(source.length);
+		expect(code.split('\n').length).toBe(source.split('\n').length);
+		for (const literal of literals) expect(code).toContain(literal);
 	}
 };
+
+
+/** Container production mode must retain template comment spans while preserving comment-like attribute values and coordinates. */
+const productionVueComments = async (): Promise<void> => {
+	const source = '<template><div title="<!-- literal -->"><!-- excluded template comment -->value</div></template>';
+	const module = new URL('../dist/analysis/comments.js', import.meta.url).href;
+	const execute = promisify(execFile);
+	const { stdout: code } = await execute(process.execPath, [
+		'--input-type=module', '-e',
+		`import { withoutComments } from ${JSON.stringify(module)}; process.stdout.write(withoutComments('component.vue', process.argv[1]));`, source
+	], { env: { ...process.env, NODE_ENV: 'production' }, timeout: 10000, maxBuffer: 65536 });
+
+	expect(code).not.toContain('excluded template comment');
+	expect(code).toContain('<!-- literal -->');
+	expect(code.length).toBe(source.length);
+	expect(code.indexOf('value')).toBe(source.indexOf('value'));
+};
+
+test('Vue template comments stay excluded in production containers', productionVueComments);
 
 /** Real duplicated implementation remains detectable across different intervening comments. */
 const implementationClone = async (): Promise<void> => {

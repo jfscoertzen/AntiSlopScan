@@ -3,7 +3,7 @@
  * @license Apache-2.0
  * antislopscan is open-source software. See LICENSE.TXT for license information.
  */
-import { expect, test } from 'vitest';
+import { expect, test } from '@jest/globals';
 import Fastify from 'fastify';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -13,7 +13,7 @@ import { executeAi } from '../src/ai.js';
 import { requestAi } from '../src/ai/transport.js';
 import { runAudit } from '../src/orchestrator.js';
 import { scannerCatalog } from '../src/scanners/catalog.js';
-import type { AuditContext, Config } from '../src/domain.js';
+import type { AuditContext } from '../src/domain.js';
 
 /** Verify native protocols, bounded structured grading, and visible partial failure through actual HTTP. */
 const providerContract = async (): Promise<void> => {
